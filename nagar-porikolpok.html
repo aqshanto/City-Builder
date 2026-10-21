@@ -1,0 +1,1700 @@
+<!doctype html>
+<html lang="bn"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>নগর পরিকল্পক</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Tiro+Bangla&display=swap">
+<style>
+/* Layout: planning-office map table — tool rail | 3D city | council panel; stacks on phones */
+:root{
+  --paper:#eceee4; --panel:#f6f7f1; --ink:#1d2621; --muted:#5b685f; --line:#cfd5c6; --accent:#2c6a58;
+  --res:#e3bd3b; --com:#d1504b; --ind:#8a6cb5; --road:#5f6469; --plant:#3d4349; --pump:#3f87b5;
+  --sewer:#8a6a45; --trash:#6f7d3a; --park:#8cc06a; --warn:#c2410c; --good:#2f7d4f;
+  --display:"Tiro Bangla", "Noto Serif Bengali", "Nirmala UI", Georgia, serif;
+  --body:"Hind Siliguri", "Noto Sans Bengali", "Nirmala UI", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#111613; --panel:#18201c; --ink:#e4eae1; --muted:#93a196; --line:#2b3530; --accent:#71c3a8;
+  --res:#cfa935; --com:#d9625d; --ind:#9e86c9; --road:#373c41; --plant:#c3c9cf; --pump:#5aa6d2;
+  --sewer:#b08a5e; --trash:#9aab55; --park:#335f2f; --warn:#f08a4b; --good:#5fc28a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#111613; --panel:#18201c; --ink:#e4eae1; --muted:#93a196; --line:#2b3530; --accent:#71c3a8;
+  --res:#cfa935; --com:#d9625d; --ind:#9e86c9; --road:#373c41; --plant:#c3c9cf; --pump:#5aa6d2;
+  --sewer:#b08a5e; --trash:#9aab55; --park:#335f2f; --warn:#f08a4b; --good:#5fc28a; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5;margin:0;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px 28px}
+.wrap{max-width:1500px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:14px 28px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+.brand h1{font-family:var(--display);font-weight:400;font-size:2rem;line-height:1.1;margin:0;text-wrap:balance}
+.brand p{margin:2px 0 0;color:var(--muted);font-size:.9rem}
+.stats{display:flex;flex-wrap:wrap;gap:6px 26px;align-items:flex-end}
+.stat{display:flex;flex-direction:column;min-width:0}
+.stat span{font-size:.78rem;color:var(--muted);letter-spacing:.02em}
+.stat b{font-size:1.3rem;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.2}
+.stat b.neg{color:var(--warn)} .stat b.pos{color:var(--good)}
+.rci{display:flex;gap:5px;align-items:center;height:46px;padding:0 10px;border-left:1px solid var(--line)}
+.rci .bar{width:16px;height:46px;position:relative;background:linear-gradient(var(--line),var(--line)) center/100% 1px no-repeat}
+.rci .bar i{position:absolute;left:2px;right:2px;bottom:50%;height:0;border-radius:2px;transition:height .4s,bottom .4s}
+.rci .bar em{position:absolute;bottom:-16px;left:0;right:0;text-align:center;font-style:normal;font-size:.7rem;color:var(--muted)}
+.rci-l{font-size:.72rem;color:var(--muted);writing-mode:vertical-rl;transform:rotate(180deg)}
+
+.layout{display:grid;grid-template-columns:180px minmax(0,1fr) 270px;gap:16px;align-items:start}
+.tools{display:flex;flex-direction:column;gap:5px}
+.tools h2,.side h2{font-size:.8rem;font-weight:600;color:var(--muted);margin:0 0 2px;letter-spacing:.03em}
+.tools h2:not(:first-child){margin-top:8px}
+.tool{display:grid;grid-template-columns:18px 1fr auto auto;align-items:center;gap:8px;width:100%;padding:7px 9px;
+  border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);font:inherit;font-size:.9rem;text-align:left;cursor:pointer;white-space:nowrap}
+.tool:hover{border-color:var(--muted)}
+.tool[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent);background:color-mix(in srgb,var(--accent) 9%,var(--panel))}
+.tool:focus-visible,.seg button:focus-visible,.act:focus-visible,.ctrl button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.sw{width:18px;height:18px;border-radius:3px;border:1px solid color-mix(in srgb,var(--ink) 25%,transparent)}
+.tool small{color:var(--muted);font-size:.76rem;font-variant-numeric:tabular-nums}
+.tool kbd{display:none}
+
+.map{display:flex;flex-direction:column;gap:8px;min-width:0}
+.board{position:relative;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#9fc3dc}
+canvas{display:block;width:100%;touch-action:none;cursor:crosshair}
+canvas.panning{cursor:grab}
+.ctrl{position:absolute;right:10px;bottom:10px;display:grid;grid-template-columns:34px 34px;gap:4px}
+.ctrl button{width:34px;height:34px;border:1px solid var(--line);border-radius:6px;background:color-mix(in srgb,var(--panel) 88%,transparent);color:var(--ink);font:inherit;font-size:1.05rem;line-height:1;cursor:pointer;padding:0}
+.ctrl button.txt{font-size:.7rem}
+.glerr{position:absolute;inset:0;display:none;place-items:center;padding:24px;text-align:center;background:var(--panel);color:var(--ink)}
+.status{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:.86rem;color:var(--muted);min-height:1.5em}
+.status .flash{color:var(--warn);font-weight:600}
+
+.side{display:flex;flex-direction:column;gap:16px;min-width:0}
+.block{display:flex;flex-direction:column;gap:7px}
+.seg{display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.seg button{flex:1;padding:7px 2px;border:0;border-right:1px solid var(--line);background:var(--panel);color:var(--ink);font:inherit;font-size:.86rem;cursor:pointer;white-space:nowrap}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--paper)}
+#overlay{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line)}
+#overlay button{border:0;font-size:.8rem}
+.legend{display:flex;flex-wrap:wrap;gap:3px 12px;font-size:.78rem;color:var(--muted)}
+.legend[hidden]{display:none}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.legend i{width:11px;height:11px;border-radius:2px;border:1px solid color-mix(in srgb,var(--ink) 25%,transparent)}
+.taxrow{display:flex;align-items:center;gap:10px}
+.taxrow input{flex:1;accent-color:var(--accent)}
+.taxrow output{font-variant-numeric:tabular-nums;font-weight:600;min-width:3ch;text-align:right}
+.ledger{display:grid;grid-template-columns:1fr auto;gap:2px 10px;font-size:.86rem;font-variant-numeric:tabular-nums}
+.ledger span:nth-child(odd){color:var(--muted)}
+.plots{font-size:.88rem;line-height:1.45}
+.plots b{font-weight:600}
+.advice{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:7px}
+.advice li{display:grid;grid-template-columns:8px 1fr;gap:9px;font-size:.86rem;line-height:1.45}
+.advice li::before{content:"";width:8px;height:8px;border-radius:50%;margin-top:.45em;background:var(--muted)}
+.advice li.crit::before{background:var(--warn)} .advice li.ok::before{background:var(--good)} .advice li.hint::before{background:var(--accent)}
+.acts{display:flex;gap:8px;flex-wrap:wrap}
+.act{padding:7px 12px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);font:inherit;font-size:.86rem;cursor:pointer}
+.act.armed{border-color:var(--warn);color:var(--warn)}
+details{font-size:.86rem;color:var(--muted)} details summary{cursor:pointer;color:var(--ink);font-weight:500}
+details ul{padding-left:18px;margin:6px 0 0;display:flex;flex-direction:column;gap:4px}
+
+@media (min-width:1001px){.tool kbd{display:inline;font:inherit;font-size:.7rem;color:var(--muted);border:1px solid var(--line);border-radius:3px;padding:0 4px}}
+@media (max-width:1000px){
+  .layout{grid-template-columns:minmax(0,1fr)}
+  .tools{flex-direction:row;overflow-x:auto;padding-bottom:4px}
+  .tools h2{display:none}
+  .tool{width:auto;flex:0 0 auto;grid-template-columns:16px auto}
+  .tool small{display:none}
+  .side{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px}
+}
+@media (max-width:520px){.brand h1{font-size:1.6rem}.stat b{font-size:1.1rem}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <h1>নগর পরিকল্পক</h1>
+      <p id="date">জানুয়ারি, বছর ১</p>
+    </div>
+    <div class="stats">
+      <div class="stat"><span>তহবিল</span><b id="sFunds">৳০</b></div>
+      <div class="stat"><span>জনসংখ্যা</span><b id="sPop">০</b></div>
+      <div class="stat"><span>কর্মসংস্থান</span><b id="sJobs">০</b></div>
+      <div class="stat"><span>মাসিক নিট</span><b id="sNet">০</b></div>
+      <div class="rci" aria-label="জোন চাহিদা">
+        <span class="rci-l">চাহিদা</span>
+        <div class="bar"><i id="dR" style="background:var(--res)"></i><em>আ</em></div>
+        <div class="bar"><i id="dC" style="background:var(--com)"></i><em>বা</em></div>
+        <div class="bar"><i id="dI" style="background:var(--ind)"></i><em>শি</em></div>
+      </div>
+    </div>
+  </header>
+
+  <div class="layout">
+    <nav class="tools" aria-label="নির্মাণ সরঞ্জাম">
+      <h2>রাস্তা ও জোন</h2>
+      <button class="tool" data-tool="road"><span class="sw" style="background:var(--road)"></span>রাস্তা<small>৳১০</small><kbd>1</kbd></button>
+      <button class="tool" data-tool="R"><span class="sw" style="background:var(--res)"></span>আবাসিক<small>৳২৫</small><kbd>2</kbd></button>
+      <button class="tool" data-tool="C"><span class="sw" style="background:var(--com)"></span>বাণিজ্যিক<small>৳২৫</small><kbd>3</kbd></button>
+      <button class="tool" data-tool="I"><span class="sw" style="background:var(--ind)"></span>শিল্প<small>৳২৫</small><kbd>4</kbd></button>
+      <h2>সেবা</h2>
+      <button class="tool" data-tool="power"><span class="sw" style="background:var(--plant)"></span>বিদ্যুৎকেন্দ্র<small>৳৩,০০০</small><kbd>5</kbd></button>
+      <button class="tool" data-tool="pump"><span class="sw" style="background:var(--pump)"></span>পানির পাম্প<small>৳১,৫০০</small><kbd>6</kbd></button>
+      <button class="tool" data-tool="outlet"><span class="sw" style="background:var(--sewer)"></span>স্যুয়েজ আউটলেট<small>৳১,২০০</small><kbd>7</kbd></button>
+      <button class="tool" data-tool="treat"><span class="sw" style="background:repeating-linear-gradient(90deg,var(--sewer) 0 4px,var(--pump) 4px 8px)"></span>শোধনাগার<small>৳৬,০০০</small></button>
+      <button class="tool" data-tool="dump"><span class="sw" style="background:var(--trash)"></span>ময়লার ভাগাড়<small>৳২,০০০</small><kbd>8</kbd></button>
+      <button class="tool" data-tool="incin"><span class="sw" style="background:repeating-linear-gradient(90deg,var(--trash) 0 4px,var(--plant) 4px 8px)"></span>ময়লার চুল্লি<small>৳৮,০০০</small></button>
+      <h2>অন্যান্য</h2>
+      <button class="tool" data-tool="park"><span class="sw" style="background:var(--park)"></span>পার্ক<small>৳৮০</small><kbd>9</kbd></button>
+      <button class="tool" data-tool="bulldoze"><span class="sw" style="background:repeating-linear-gradient(45deg,var(--warn) 0 3px,transparent 3px 6px)"></span>ভাঙো<small>৳৫</small><kbd>0</kbd></button>
+      <button class="tool" data-tool="buy"><span class="sw" style="background:repeating-linear-gradient(0deg,var(--accent) 0 2px,transparent 2px 6px),repeating-linear-gradient(90deg,var(--accent) 0 2px,transparent 2px 6px)"></span>এলাকা কেনো<small></small><kbd>B</kbd></button>
+      <button class="tool" data-tool="pan"><span class="sw" style="background:var(--panel)"></span>মানচিত্র সরাও<small></small></button>
+    </nav>
+
+    <section class="map">
+      <div class="board" id="board">
+        <canvas id="cv" aria-label="শহরের ত্রিমাত্রিক মানচিত্র। টেনে টেনে রাস্তা ও জোন বসাও।"></canvas>
+        <div class="ctrl">
+          <button id="zIn" aria-label="জুম বাড়াও">+</button>
+          <button id="zOut" aria-label="জুম কমাও">−</button>
+          <button id="rotL" aria-label="বাঁয়ে ঘোরাও">⟲</button>
+          <button id="rotR" aria-label="ডানে ঘোরাও">⟳</button>
+          <button id="tilt" class="txt" aria-label="উপর থেকে দেখো">উপর</button>
+          <button id="zFit" class="txt" aria-label="পুরো শহর দেখাও">পুরো</button>
+        </div>
+        <div class="glerr" id="glerr"></div>
+      </div>
+      <div class="status"><span id="hover">বাম-ক্লিক টেনে আঁকো · মাঝের বাটন (বা Alt) চেপে টানলে ঘোরে ও হেলে · ডান-ক্লিক টেনে সরাও · চাকায় জুম</span><span id="flash" class="flash"></span></div>
+    </section>
+
+    <aside class="side">
+      <div class="block">
+        <h2>গতি</h2>
+        <div class="seg" id="speed">
+          <button data-s="0">থামাও</button><button data-s="1">১×</button><button data-s="2">২×</button><button data-s="3">৪×</button>
+        </div>
+      </div>
+      <div class="block">
+        <h2>সময় ও গ্রাফিক্স</h2>
+        <div class="seg" id="tod"><button data-t="day">দিন</button><button data-t="dusk">সন্ধ্যা</button><button data-t="night">রাত</button></div>
+        <div class="seg" id="quality"><button data-q="high">ছায়াসহ</button><button data-q="low">হালকা</button></div>
+      </div>
+      <div class="block">
+        <h2>কর হার</h2>
+        <div class="taxrow"><input id="tax" type="range" min="0" max="20" step="1" value="9" aria-label="কর হার"><output id="taxOut">৯%</output></div>
+        <div class="ledger">
+          <span>কর আয়</span><span id="lInc">৳০</span>
+          <span>সম্পদ বিক্রি</span><span id="lRes">—</span>
+          <span>রক্ষণাবেক্ষণ</span><span id="lUp">৳০</span>
+          <span>বিদ্যুৎ</span><span id="lPow">০ / ০</span>
+          <span>পানি</span><span id="lWat">০ / ০</span>
+          <span>পয়ঃনিষ্কাশন</span><span id="lSew">০ / ০</span>
+          <span>ময়লা (মাসিক)</span><span id="lTrash">০ / ০</span>
+          <span>ভাগাড় ভরেছে</span><span id="lDump">—</span>
+          <span>খনির মজুদ</span><span id="lMine">—</span>
+        </div>
+      </div>
+      <div class="block">
+        <h2>মানচিত্রের স্তর</h2>
+        <div class="seg" id="overlay">
+          <button data-o="none">সাধারণ</button><button data-o="power">বিদ্যুৎ</button><button data-o="water">পানি</button><button data-o="sewer">পয়ঃ</button>
+          <button data-o="trash">ময়লা</button><button data-o="poll">দূষণ</button><button data-o="lv">জমির মান</button><button data-o="res">সম্পদ</button><button data-o="plots">এলাকা</button>
+        </div>
+        <div class="legend" id="resLegend" hidden>
+          <span><i style="background:rgb(214,180,40)"></i>উর্বর জমি</span><span><i style="background:rgb(34,120,52)"></i>বন</span>
+          <span><i style="background:rgb(196,92,44)"></i>লোহা</span><span><i style="background:rgb(92,52,140)"></i>তেল</span>
+          <span><i style="background:rgb(40,40,44)"></i>কয়লা</span><span><i style="background:rgb(150,150,150)"></i>ফুরিয়েছে</span>
+        </div>
+      </div>
+      <div class="block">
+        <h2>এলাকা</h2>
+        <div class="plots" id="plots"></div>
+      </div>
+      <div class="block">
+        <h2>মেয়রের উপদেষ্টা</h2>
+        <ul class="advice" id="advice"></ul>
+      </div>
+      <div class="block">
+        <div class="acts">
+          <button class="act" id="btnSample">নমুনা শহর</button>
+          <button class="act" id="btnBlank">ফাঁকা মানচিত্র</button>
+        </div>
+        <details>
+          <summary>নিয়ন্ত্রণ আর সিমুলেশন</summary>
+          <ul>
+            <li>ক্যামেরা: মাঝের বাটন বা Alt চেপে টানলে ঘোরে আর হেলে। ডান-ক্লিক টেনে সরে, চাকায় জুম হয়। কিবোর্ডে W A S D বা অ্যারো দিয়ে সরাও, Q E দিয়ে ঘোরাও, R F দিয়ে হেলাও।</li>
+            <li>জোন গড়ে ওঠে বিদ্যুৎ, ২ ঘরের মধ্যে রাস্তা আর চাহিদা থাকলে। পানি না থাকলে ভবন স্তর ১-এর ওপরে ওঠে না, আর পয়ঃনিষ্কাশন না থাকলে স্তর ২-এর ওপরে ওঠে না।</li>
+            <li>পাম্প, আউটলেট আর শোধনাগার বসাতে হয় নদীর পাড়ে। পানি আর পয়ঃ দুটোর পাইপই রাস্তার নিচ দিয়ে যায়। নদী পূর্ব দিকে বয়, তাই আউটলেট পাম্পের ভাটিতে (পূর্বে) বসাও।</li>
+            <li>ময়লার গাড়ি ভাগাড় বা চুল্লি থেকে রাস্তা ধরে ৪৫ ঘর পর্যন্ত যায়। ময়লা জমলে জমির দাম কমে আর ভবন বাড়ে না। ভাগাড় একসময় ভরে যায়, তবে চুল্লি কখনো ভরে না।</li>
+            <li>মানচিত্রে প্রাকৃতিক সম্পদ আছে ("সম্পদ" স্তরে দেখো)। তার ওপর শিল্প জোন করলে বিশেষ শিল্প হয়: উর্বর জমিতে কৃষি খামার, বনে কাঠশিল্প, আর লোহা, তেল ও কয়লার খনি। এগুলোতে চাকরি আর আয় বেশি। লোহা, তেল আর কয়লা একসময় ফুরিয়ে যায়, বন আবার গজায়, উর্বর জমি কখনো ফুরায় না। তেল আর কয়লায় দূষণ সবচেয়ে বেশি, আর খামার দূষণ সহ্য করতে পারে না।</li>
+            <li>জনসংখ্যা বাড়লে "এলাকা কেনো" টুল দিয়ে পাশের এলাকা কেনা যায়। পুরো মানচিত্রে মোট ৯টি এলাকা আছে।</li>
+          </ul>
+        </details>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<script src="three.min.js"></script>
+<script>
+(function(){
+'use strict';
+const $=id=>document.getElementById(id);
+
+/* ================= SIMULATION ================= */
+const PLOT=32, PW=3, W=PLOT*PW, H=W, N=W*H;
+const T={GROUND:0,WATER:1,ROAD:2,R:3,C:4,I:5,POWER:6,PARK:7,PUMP:8,OUTLET:9,TREAT:10,DUMP:11,INCIN:12};
+const CAP={3:[0,20,60,140],4:[0,10,30,70],5:[0,15,45,90]};
+const COST={road:10,bridge:60,R:25,C:25,I:25,power:3000,pump:1500,outlet:1200,treat:6000,dump:2000,incin:8000,park:80,bulldoze:5};
+const TOOL_T={road:T.ROAD,R:T.R,C:T.C,I:T.I,power:T.POWER,pump:T.PUMP,outlet:T.OUTLET,treat:T.TREAT,dump:T.DUMP,incin:T.INCIN,park:T.PARK};
+const ON_BANK=new Set([T.PUMP,T.OUTLET,T.TREAT]);
+const PLANT_CAP=1000, PUMP_CAP=700, OUTLET_CAP=800, TREAT_CAP=1600;
+const POWER_USE={[T.PUMP]:15,[T.TREAT]:60,[T.INCIN]:80};
+const UPKEEP={[T.POWER]:80,[T.PUMP]:40,[T.OUTLET]:30,[T.TREAT]:120,[T.DUMP]:40,[T.INCIN]:150,[T.PARK]:3};
+const DUMP_STORE=40000, DUMP_RATE=1000, INCIN_RATE=2000, TRUCK_RANGE=45, TRASH_BAD=30;
+// natural resources: an industrial zone on one becomes a specialised industry (index = resource id)
+const RS={NONE:0,FARM:1,FOREST:2,ORE:3,OIL:4,COAL:5};
+const RES_NAME=['','উর্বর জমি','বন','লোহার আকরিক','খনিজ তেল','কয়লা'];
+const SPEC_NAME=['শিল্প','কৃষি খামার','কাঠশিল্প','লোহার খনি','তেলক্ষেত্র','কয়লাখনি'];
+const SPEC_CAP=[null,[0,18,50,100],[0,18,52,105],[0,22,60,120],[0,20,58,116],[0,22,62,124]];   // jobs per level
+const SPEC_VALUE=[0,6,8,12,16,12];       // monthly sales per level, taka
+const SPEC_POLL=[[4,0.11],[1,0.01],[3,0.05],[4,0.13],[5,0.19],[5,0.21]];   // [radius, amount per level]; [0] is generic industry
+const SPEC_USE=[0,0,3,10,10,10];         // resource used per level per month
+const FOREST_MAX=100, FOREST_REGROW=2.5;
+// buying the next plot while owning k plots needs PLOT_POP[k] people and PLOT_PRICE[k] taka
+const PLOT_POP=[0,800,2000,4000,7000,11000,16000,22000,30000];
+const PLOT_PRICE=[0,5000,10000,18000,28000,40000,55000,75000,100000];
+const MONTHS=['জানুয়ারি','ফেব্রুয়ারি','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টেম্বর','অক্টোবর','নভেম্বর','ডিসেম্বর'];
+const NAMES={0:'খালি জমি',1:'নদী',2:'রাস্তা',3:'আবাসিক',4:'বাণিজ্যিক',5:'শিল্প',6:'বিদ্যুৎকেন্দ্র',7:'পার্ক',8:'পানির পাম্প',9:'স্যুয়েজ আউটলেট',10:'পয়ঃশোধনাগার',11:'ময়লার ভাগাড়',12:'ময়লার চুল্লি'};
+const BN='০১২৩৪৫৬৭৮৯';
+const bn=s=>String(s).replace(/\d/g,d=>BN[d]);
+const fmt=n=>bn(Math.round(n).toLocaleString('en-IN'));
+const taka=n=>(n<0?'−':'')+'৳'+fmt(Math.abs(n));
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+const smooth=(a,b,v)=>{const t=clamp((v-a)/(b-a),0,1);return t*t*(3-2*t);};
+const hash=i=>{let h=Math.imul(i+1,374761393);h=Math.imul(h^(h>>>13),1274126177);return ((h^(h>>>16))>>>0)/4294967296;};
+const hash2=(x,y)=>hash(Math.imul(x,73856093)^Math.imul(y,19349663));
+function vnoise(x,y){const xi=Math.floor(x),yi=Math.floor(y),xf=x-xi,yf=y-yi,u=xf*xf*(3-2*xf),v=yf*yf*(3-2*yf);
+  return hash2(xi,yi)*(1-u)*(1-v)+hash2(xi+1,yi)*u*(1-v)+hash2(xi,yi+1)*(1-u)*v+hash2(xi+1,yi+1)*u*v;}
+const fbm=(x,y)=>vnoise(x,y)*0.6+vnoise(x*2.1+7,y*2.1+3)*0.3+vnoise(x*4.3+1,y*4.3+9)*0.1;
+
+let terrain=new Uint8Array(N), type=new Uint8Array(N), lvl=new Uint8Array(N);
+let powered=new Uint8Array(N), watered=new Uint8Array(N), sewered=new Uint8Array(N), covered=new Uint8Array(N), roadNear=new Uint8Array(N);
+let poll=new Float32Array(N), lv=new Float32Array(N), trash=new Float32Array(N), fill=new Float32Array(N), colPoll=new Float32Array(W);
+let owned=new Uint8Array(PW*PW);
+// res: resource id per tile (regenerated from noise, never saved); resAmt: what is left (saved); resStage: drawn state
+let res=new Uint8Array(N), resAmt=new Float32Array(N), resMax=new Float32Array(N), resStage=new Uint8Array(N);
+let roadTiles=[], facs=[], depl={month:-99,n:0};
+const st={funds:20000,month:0,tax:9,speed:1,overlay:'none',tool:'road',tod:'day',quality:'high'};
+const dem={R:0,C:0,I:0}, dShow={R:0,C:0,I:0};
+let S={pop:0,cj:0,ij:0,roads:0,n:{},use:0,cap:0,unlinked:0,wuse:0,wcap:0,wdry:0,woff:0,pumpsDirty:0,suse:0,scap:0,sdry:0,soff:0,tgen:0,tcap:0,tuncov:0,tpiled:0,dumpsFull:0,dumpFill:0,dumpStore:0,incOff:0};
+let ledger={inc:0,up:0,res:0};
+
+/* river: one meandering band across the map that keeps flowing east into the countryside */
+const riverMid=x=>40+3*Math.sin(x/11+3)+1.1*Math.sin(x/4.3)+2.4*Math.sin(x/23+1);
+const riverW=x=>3+(Math.sin(x/7+2)>0.6?1:0);
+function riverAt(x,y){const top=Math.round(riverMid(x))-1;return y>=top&&y<top+riverW(x);}
+
+const plotOf=i=>((((i/W)|0)/PLOT)|0)*PW+(((i%W)/PLOT)|0);
+const nOwned=()=>owned.reduce((a,b)=>a+b,0);
+function plotBuyable(p){
+  if(owned[p])return false;const px=p%PW,py=(p/PW)|0;
+  return [[1,0],[-1,0],[0,1],[0,-1]].some(([dx,dy])=>{const X=px+dx,Y=py+dy;return X>=0&&Y>=0&&X<PW&&Y<PW&&owned[Y*PW+X];});
+}
+
+/* ---------- world setup ---------- */
+function makeTerrain(){
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){const i=y*W+x;terrain[i]=riverAt(x,y)?1:0;type[i]=terrain[i]?T.WATER:T.GROUND;}
+  lvl.fill(0);trash.fill(0);fill.fill(0);owned.fill(0);owned[4]=1;
+  makeResources(); depl={month:-99,n:0};
+}
+/* resources come from the same noise as the scenery, so the map is identical every game:
+   ore, oil and coal in patches away from the river, forest in the tree groves, fertile land along the river */
+function makeResources(){
+  res.fill(0); resMax.fill(0);
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){const i=y*W+x; if(terrain[i])continue;
+    const top=Math.round(riverMid(x))-1, w=riverW(x), d=Math.abs(y+0.5-(top+w/2))-w/2;   // distance from the river
+    let r=0,best=0;
+    if(d>=3)for(const [id,v] of [[RS.ORE,fbm(x*0.13+61,y*0.13+17)],[RS.OIL,fbm(x*0.12+23,y*0.12+71)],[RS.COAL,fbm(x*0.13+5,y*0.13+44)]]){
+      const m=v-0.76; if(m>best){best=m;r=id;}}
+    if(r)resMax[i]=Math.round(150+650*Math.min(1,best/0.1));   // richer towards the middle of a patch
+    else if(fbm(x*0.09+40,y*0.09+11)>0.58){r=RS.FOREST;resMax[i]=FOREST_MAX;}   // same groves the ground trees grow in
+    else if(d<2.5+fbm(x*0.1+90,y*0.1+30)*7&&fbm(x*0.21+13,y*0.21+57)>0.36){r=RS.FARM;resMax[i]=1;}
+    res[i]=r;
+  }
+  // every resource must be within reach: in the starting plot or one of its four neighbours
+  const near=[4,1,3,5,7];
+  for(const r of [RS.FARM,RS.FOREST,RS.ORE,RS.OIL,RS.COAL]){
+    let have=0; for(let i=0;i<N;i++)if(res[i]===r&&near.includes(plotOf(i)))have++;
+    if(have>=6)continue;
+    for(let k=0;k<200;k++){
+      const p=near[1+(k%4)], cx=(p%PW)*PLOT+4+Math.floor(hash2(r*31+k,7)*24), cy=((p/PW)|0)*PLOT+4+Math.floor(hash2(r*17+k,3)*24);
+      if(terrain[cy*W+cx]||(r!==RS.FARM&&nearRiver(cy*W+cx)))continue;
+      for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){const j=(cy+dy)*W+cx+dx;
+        if(dx*dx+dy*dy>5||terrain[j])continue; res[j]=r; resMax[j]=r===RS.FARM?1:r===RS.FOREST?FOREST_MAX:450;}
+      break;
+    }
+  }
+  resAmt.set(resMax); syncStages();
+}
+// drawn state of a resource tile: forest 0..4 (how many trees stand), deposits 1..3 (how big the spoil heaps are), 0 = used up
+function stageOf(i){const r=res[i];
+  if(r===RS.FOREST)return Math.ceil(resAmt[i]/FOREST_MAX*4);
+  if(r>=RS.ORE)return resAmt[i]>0?1+Math.min(2,Math.floor((1-resAmt[i]/resMax[i])*3)):0;
+  return 0;}
+function syncStages(){for(let i=0;i<N;i++)resStage[i]=stageOf(i);}
+function setT(x,y,t){if(x<0||y<0||x>=W||y>=H)return;const i=y*W+x;if(t!==T.ROAD&&terrain[i])return;type[i]=t;}
+function rect(x0,x1,y0,y1,t){for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++)setT(x,y,t);}
+function seedSample(){
+  makeTerrain();
+  const O=PLOT, r=(x0,x1,y0,y1,t)=>rect(O+x0,O+x1,O+y0,O+y1,t);   // local coordinates inside the centre plot
+  r(0,31,17,17,T.ROAD); r(0,31,22,22,T.ROAD); r(0,31,27,27,T.ROAD);
+  r(8,8,17,30,T.ROAD); r(16,16,0,30,T.ROAD); r(24,24,17,30,T.ROAD); r(29,29,7,16,T.ROAD); r(6,26,4,4,T.ROAD);
+  r(1,7,18,21,T.R); r(9,15,18,21,T.R); r(1,7,23,26,T.R); r(9,15,23,26,T.R); r(1,7,28,29,T.R); r(9,11,28,29,T.PARK); r(12,15,28,29,T.R);
+  r(17,23,18,21,T.C); r(17,23,23,26,T.C); r(17,23,28,29,T.C);
+  r(25,31,18,21,T.I); r(25,31,23,26,T.I); r(26,29,28,29,T.I);
+  r(30,31,28,30,T.POWER); r(25,25,28,29,T.DUMP);
+  r(1,15,15,16,T.R); r(2,12,13,14,T.PARK);                                   // riverside park
+  r(6,15,2,3,T.R); r(6,15,5,6,T.R); r(17,20,2,3,T.PARK); r(21,26,2,3,T.R); r(17,22,5,5,T.C);
+  r(0,5,4,4,T.ROAD); r(2,5,2,3,T.I);                                        // forestry in the north-west grove
+  r(17,29,6,6,T.ROAD); r(17,25,7,8,T.I);                                     // farms on the fertile north bank
+  r(6,7,30,31,T.I);                                                          // a small coal pit in the south-west
+  for(const [x,y] of [[15,13],[17,12],[15,8],[17,8]])setT(O+x,O+y,T.PUMP);       // pumps upstream, on both banks by the bridge
+  for(const [x,y] of [[28,12],[30,12],[28,8],[30,8]])setT(O+x,O+y,T.OUTLET);     // outlets downstream, by the second bridge
+  computeRoadNear();
+  for(let i=0;i<N;i++){
+    const t=type[i]; if(!isZone(t))continue;
+    if(!roadNear[i]){lvl[i]=0;continue;}
+    const h=hash(i), north=((i/W)|0)<O+9;
+    if(north)lvl[i]=h<0.7?1:0;
+    else if(t===T.R)lvl[i]=h<0.78?1:h<0.96?2:3;
+    else if(t===T.C)lvl[i]=h<0.75?1:h<0.95?2:3;
+    else lvl[i]=h<0.8?1:2;
+    if(specOf(i))lvl[i]=h<0.6?1:2;
+  }
+  for(let i=0;i<N;i++)if(type[i]===T.DUMP)fill[i]=DUMP_STORE*0.25;
+  st.funds=20000; st.month=0; st.tax=9;
+  refreshAll(); fitCam(true);
+}
+function seedBlank(){makeTerrain();st.funds=30000;st.month=0;st.tax=9;refreshAll();fitCam(true);}
+
+/* ---------- simulation ---------- */
+const isZone=t=>t>=3&&t<=5;
+// specialised industry on this tile (0 = generic). A used-up deposit falls back to an ordinary factory.
+const specOf=i=>type[i]===T.I&&res[i]&&(res[i]<=RS.FOREST||resAmt[i]>0)?res[i]:0;
+function specYield(i){const s=specOf(i);   // 0..1: how much of its full output the tile manages this month
+  if(s===RS.FARM)return clamp(1-poll[i]*1.6,0.15,1);   // crops suffer from smoke
+  if(s===RS.FOREST)return lvl[i]?clamp((resAmt[i]+FOREST_REGROW)/(SPEC_USE[s]*lvl[i]),0,1):1;
+  return 1;}
+const nb=i=>{const x=i%W,y=(i/W)|0,o=[];if(x>0)o.push(i-1);if(x<W-1)o.push(i+1);if(y>0)o.push(i-W);if(y<H-1)o.push(i+W);return o;};
+const nearRiver=i=>nb(i).some(j=>terrain[j]);
+const NEAR2=[];for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++)if(Math.abs(dx)+Math.abs(dy)<=2)NEAR2.push([dx,dy]);
+function computeRoadNear(){
+  roadNear.fill(0); roadTiles=[];
+  for(let i=0;i<N;i++){ if(type[i]!==T.ROAD)continue; roadTiles.push(i);
+    const x=i%W,y=(i/W)|0;
+    for(const [dx,dy] of NEAR2){const X=x+dx,Y=y+dy;if(X>=0&&Y>=0&&X<W&&Y<H)roadNear[Y*W+X]=1;}
+  }
+}
+function need(i){const t=type[i],L=lvl[i];if(t===T.R)return L?L*6:1;if(t===T.C)return L?L*7:1;if(t===T.I)return L?L*10:1;return POWER_USE[t]||0;}
+function computePower(){
+  powered.fill(0);
+  const seen=new Uint8Array(N), q=[]; let cap=0,demand=0;
+  for(let i=0;i<N;i++) if(type[i]===T.POWER){q.push(i);seen[i]=1;cap+=PLANT_CAP;powered[i]=1;}
+  for(let h=0;h<q.length;h++){
+    for(const j of nb(q[h])){
+      if(seen[j])continue; const t=type[j]; if(t===T.GROUND||t===T.WATER)continue;
+      seen[j]=1; q.push(j); demand+=need(j);   // only tiles the grid actually reaches count as demand
+    }
+  }
+  // essential services (pumps, treatment, incinerators) are fed first, then everything else in BFS order
+  let rem=cap;
+  for(const pass of [true,false])for(const j of q){if(powered[j]||!!POWER_USE[type[j]]!==pass)continue;const n=need(j);if(rem>=n){powered[j]=1;rem-=n;}}
+  let unlinked=0;
+  if(cap)for(let i=0;i<N;i++){const t=type[i];if((isZone(t)||POWER_USE[t])&&!seen[i])unlinked++;}
+  S.cap=cap; S.use=demand; S.unlinked=unlinked;
+}
+function computeEnv(){
+  poll.fill(0); lv.fill(0.35); colPoll.fill(0);
+  // sewage goes into the river and drifts downstream (east); a little seeps upstream
+  const dumpRiver=(x0,amt)=>{for(let x=0;x<W;x++)colPoll[x]+=amt*(x>=x0?Math.pow(0.94,x-x0):Math.pow(0.5,x0-x));};
+  for(let i=0;i<N;i++){if(type[i]===T.OUTLET)dumpRiver(i%W,0.6);else if(type[i]===T.TREAT)dumpRiver(i%W,0.06);}
+  const spread=(i,r,amt,arr)=>{const x=i%W,y=(i/W)|0;
+    for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){const X=x+dx,Y=y+dy;if(X<0||Y<0||X>=W||Y>=H)continue;
+      const d=Math.hypot(dx,dy);if(d>r)continue;arr[Y*W+X]+=amt*(1-d/(r+1));}};
+  for(let i=0;i<N;i++){const t=type[i],L=lvl[i];
+    if(t===T.I&&L){const p=SPEC_POLL[specOf(i)];spread(i,p[0],L*p[1],poll);}
+    else if(t===T.POWER)spread(i,5,0.35,poll);
+    else if(t===T.INCIN)spread(i,5,0.4,poll);
+    else if(t===T.DUMP)spread(i,3,0.25+0.25*fill[i]/DUMP_STORE,poll);
+    else if(t===T.OUTLET)spread(i,3,0.2,poll);
+    else if(t===T.PARK){spread(i,2,-0.12,poll);spread(i,3,0.2,lv);}
+    if(terrain[i])spread(i,3,0.05*(1-Math.min(1,colPoll[i%W]*1.5)),lv);   // a clean river is nice to live by
+    if(t===T.C&&L>1)spread(i,2,0.03,lv);
+  }
+  for(let i=0;i<N;i++){
+    if(terrain[i])poll[i]=Math.max(poll[i],colPoll[i%W]);
+    poll[i]=clamp(poll[i],0,1);
+    lv[i]=clamp(lv[i]-poll[i]*0.5-(isZone(type[i])?Math.min(0.25,trash[i]/150):0),0,1);
+  }
+}
+/* water and sewage: pipes run under roads; a zone uses any piped road within 2 tiles.
+   Capacity is handed out in BFS order, so zones nearest a source are served first. */
+function wneed(i){const t=type[i],L=lvl[i];if(t===T.R)return L?L*5:1;if(t===T.C)return L?L*4:1;if(t===T.I)return L?L*8:1;return 0;}
+function computeNet(isSrc,outFn,arr){
+  arr.fill(0);
+  const seen=new Uint8Array(N), asked=new Uint8Array(N), q=[];
+  let cap=0,use=0,off=0;
+  for(let i=0;i<N;i++){ if(!isSrc(type[i]))continue; seen[i]=1;
+    const o=outFn(i); if(!o){off++;continue;} cap+=o; arr[i]=1; q.push(i); }
+  let rem=cap;
+  for(let h=0;h<q.length;h++){
+    const i=q[h];
+    if(type[i]===T.ROAD){
+      arr[i]=1;   // this road carries a pipe
+      const x=i%W,y=(i/W)|0;
+      for(const [dx,dy] of NEAR2){const X=x+dx,Y=y+dy;if(X<0||Y<0||X>=W||Y>=H)continue;
+        const j=Y*W+X; if(!isZone(type[j])||asked[j])continue;
+        asked[j]=1; const n=wneed(j); use+=n; if(rem>=n){arr[j]=1;rem-=n;}}
+    }
+    for(const j of nb(i))if(!seen[j]&&type[j]===T.ROAD){seen[j]=1;q.push(j);}
+  }
+  let dry=0;
+  if(cap)for(let i=0;i<N;i++)if(isZone(type[i])&&!asked[i])dry++;
+  return {cap,use,dry,off};
+}
+const pumpQual=i=>Math.max(poll[i],colPoll[i%W]);
+const pumpOut=i=>powered[i]?Math.round(PUMP_CAP*(1-Math.min(0.6,pumpQual(i)))):0;   // dirty river = less usable water
+function computeWater(){
+  const r=computeNet(t=>t===T.PUMP,pumpOut,watered);
+  let dirty=0;for(let i=0;i<N;i++)if(type[i]===T.PUMP&&powered[i]&&pumpQual(i)>0.25)dirty++;
+  Object.assign(S,{wcap:r.cap,wuse:r.use,wdry:r.dry,woff:r.off,pumpsDirty:dirty});
+}
+function computeSewer(){
+  const r=computeNet(t=>t===T.OUTLET||t===T.TREAT,i=>type[i]===T.OUTLET?OUTLET_CAP:(powered[i]?TREAT_CAP:0),sewered);
+  Object.assign(S,{scap:r.cap,suse:r.use,sdry:r.dry,soff:r.off});
+}
+function tgen(i){const t=type[i],L=lvl[i];if(!L)return 0;return t===T.R?L*2:t===T.C?L*3:t===T.I?L*4:0;}
+/* garbage: each dump/incinerator sends trucks along the roads up to TRUCK_RANGE tiles away */
+function computeGarbage(){
+  covered.fill(0); facs=[];
+  let full=0,incOff=0,fillSum=0,store=0;
+  for(let i=0;i<N;i++){const t=type[i];
+    if(t!==T.DUMP&&t!==T.INCIN)continue;
+    if(t===T.DUMP){fillSum+=fill[i];store+=DUMP_STORE;if(fill[i]>=DUMP_STORE)full++;}
+    else if(!powered[i])incOff++;
+    const rate=t===T.DUMP?(fill[i]<DUMP_STORE?DUMP_RATE:0):(powered[i]?INCIN_RATE:0);
+    const list=[];
+    if(rate){
+      const dist=new Map(), q=[], got=new Uint8Array(N);
+      for(const j of nb(i))if(type[j]===T.ROAD){dist.set(j,1);q.push(j);}
+      for(let h=0;h<q.length;h++){const r=q[h],d=dist.get(r),x=r%W,y=(r/W)|0;
+        for(const [dx,dy] of NEAR2){const X=x+dx,Y=y+dy;if(X<0||Y<0||X>=W||Y>=H)continue;
+          const j=Y*W+X;if(!isZone(type[j])||got[j])continue;got[j]=1;list.push(j);covered[j]=1;}
+        if(d<TRUCK_RANGE)for(const j of nb(r))if(type[j]===T.ROAD&&!dist.has(j)){dist.set(j,d+1);q.push(j);}}
+    }
+    facs.push({i,rate,list});
+  }
+  let gen=0,unc=0,piled=0;
+  for(let i=0;i<N;i++){if(!isZone(type[i]))continue;gen+=tgen(i);if(lvl[i]&&!covered[i])unc++;if(trash[i]>TRASH_BAD)piled++;}
+  Object.assign(S,{tgen:gen,tcap:facs.reduce((a,f)=>a+f.rate,0),tuncov:facs.length?unc:0,tpiled:piled,dumpsFull:full,incOff,dumpFill:fillSum,dumpStore:store});
+}
+function computeStats(){
+  let pop=0,cj=0,ij=0,roads=0,up=0,sales=0,nSpec=0,mAmt=0,mMax=0,low=0,thin=0,smog=0,gone=0;const n={};
+  for(let i=0;i<N;i++){const t=type[i],L=lvl[i];
+    if(t===T.R)pop+=CAP[3][L];else if(t===T.C)cj+=CAP[4][L];
+    else if(t===T.I){const s=specOf(i);ij+=(s?SPEC_CAP[s]:CAP[5])[L];
+      if(!s&&res[i]>=RS.ORE)gone++;
+      if(s&&L){const y=specYield(i);nSpec++;sales+=L*SPEC_VALUE[s]*y;
+        if(s>=RS.ORE){mAmt+=resAmt[i];mMax+=resMax[i];if(resAmt[i]<resMax[i]*0.2)low++;}
+        else if(s===RS.FOREST&&y<0.6)thin++;
+        else if(s===RS.FARM&&y<0.7)smog++;}}
+    else if(t===T.ROAD)roads++;
+    n[t]=(n[t]||0)+1; up+=UPKEEP[t]||0;}
+  Object.assign(S,{pop,cj,ij,roads,n,nSpec,mineAmt:mAmt,mineMax:mMax,resLow:low,forestThin:thin,farmSmog:smog,resGone:gone});
+  ledger.res=Math.round(sales);
+  const jobs=cj+ij, tp=(st.tax-7)*0.035;
+  dem.R=clamp((jobs*1.8+150-pop)/(pop*0.3+150),-1,1)-tp;
+  dem.C=clamp((pop*0.3+30-cj)/(cj*0.5+60),-1,1)-tp;
+  dem.I=clamp((pop*0.4+40-ij)/(ij*0.5+60),-1,1)-tp;
+  ledger.inc=Math.round((pop*0.025+jobs*0.018)*st.tax);
+  ledger.up=Math.round(roads*0.4+up);
+}
+function recompute(){computePower();computeEnv();computeWater();computeSewer();computeGarbage();computeStats();advise();}
+function refreshAll(){syncStages();computeRoadNear();recompute();markAll();updateUI();}
+
+function tick(){
+  st.month++;
+  const before=lvl.slice(), fillBefore=fill.slice();
+  // garbage: every lot makes some, then trucks collect in the order they reach lots
+  for(let i=0;i<N;i++)if(isZone(type[i]))trash[i]+=tgen(i);
+  for(const f of facs){
+    let b=f.rate; if(type[f.i]===T.DUMP)b=Math.min(b,DUMP_STORE-fill[f.i]);
+    for(const j of f.list){if(b<=0)break;const take=Math.min(trash[j],b);trash[j]-=take;b-=take;if(type[f.i]===T.DUMP)fill[f.i]+=take;}
+  }
+  // resources: forests regrow everywhere; working industries use up what is under them (fertile land never runs out)
+  let gone=0;
+  for(let i=0;i<N;i++){const r=res[i]; if(!r)continue;
+    if(r===RS.FOREST&&resAmt[i]<FOREST_MAX)resAmt[i]=Math.min(FOREST_MAX,resAmt[i]+FOREST_REGROW);
+    const s=specOf(i), L=lvl[i];
+    if(s>=RS.FOREST&&L&&powered[i]){
+      resAmt[i]=Math.max(0,resAmt[i]-SPEC_USE[s]*L);
+      if(s>=RS.ORE&&resAmt[i]<=0){gone++;lvl[i]=Math.max(1,L-1);}   // deposit exhausted: it carries on as an ordinary factory
+    }
+    const sg=stageOf(i); if(sg!==resStage[i]){resStage[i]=sg;markTile(i);}
+  }
+  if(gone)depl={month:st.month,n:(st.month-depl.month<4?depl.n:0)+gone};
+  for(let i=0;i<N;i++){
+    const t=type[i]; if(!isZone(t))continue;
+    if(!(powered[i]&&roadNear[i])){ if(lvl[i]>0&&Math.random()<0.12)lvl[i]--; continue; }
+    // no piped water: a tube-well keeps level 1 going; no sewage: nothing above level 2
+    if((!watered[i]&&lvl[i]>1)||(!sewered[i]&&lvl[i]>2)){ if(Math.random()<0.1)lvl[i]--; continue; }
+    let sc = t===T.R ? dem.R+(lv[i]-0.5)*0.6-poll[i]*0.9 : t===T.C ? dem.C+(lv[i]-0.5)*0.4-poll[i]*0.3 : dem.I;
+    if(trash[i]>TRASH_BAD)sc-=0.4;
+    const s=specOf(i);   // resources draw industry in; poor output and (for farms) smoke push it away
+    if(s){sc+=0.08-(1-specYield(i))*0.6; if(s===RS.FARM)sc-=poll[i]*1.5;}
+    const top = !watered[i] ? 1 : !sewered[i] ? 2 : t===T.I ? 3 : (lv[i]>0.55?3:2);
+    if(sc>0&&lvl[i]<top&&Math.random()<0.05+sc*0.2)lvl[i]++;
+    else if(sc<-0.25&&lvl[i]>0&&Math.random()<0.08)lvl[i]--;
+  }
+  recompute();
+  st.funds+=ledger.inc+ledger.res-ledger.up;
+  for(let i=0;i<N;i++){
+    if(lvl[i]!==before[i])markTile(i);
+    else if(type[i]===T.DUMP&&Math.floor(fill[i]/4000)!==Math.floor(fillBefore[i]/4000))markTile(i);
+  }
+  markersDirty=true; overlayDirty=true; updateUI(); save();
+}
+
+/* ---------- advisor ---------- */
+function advise(){
+  const out=[], n=t=>S.n[t]||0;
+  let far=0,hurt=0,zones=0;
+  for(let i=0;i<N;i++){const t=type[i];if(!isZone(t))continue;zones++;
+    if(!roadNear[i])far++; if(t===T.R&&poll[i]>0.4)hurt++;}
+  if(st.funds<0)out.push(['crit','তহবিল ঋণাত্মক। কর একটু বাড়াও বা খরচ কমাও।']);
+  if(zones&&!n(T.POWER))out.push(['crit','শহরে কোনো বিদ্যুৎকেন্দ্র নেই, তাই কিছুই গড়ে উঠবে না।']);
+  else if(S.use>S.cap)out.push(['crit',`বিদ্যুৎ ঘাটতি: চাহিদা ${fmt(S.use)}, ক্ষমতা ${fmt(S.cap)}। আরেকটা বিদ্যুৎকেন্দ্র বসাও।`]);
+  else if(S.cap&&S.use>S.cap*0.85)out.push(['hint','বিদ্যুৎ প্রায় শেষ। শহর বাড়ার আগেই নতুন কেন্দ্রের জন্য টাকা জমাও।']);
+  if(S.unlinked)out.push(['hint',`${bn(S.unlinked)}টি জোন বা সেবা বিদ্যুৎ নেটওয়ার্কের সাথে জোড়া নেই।`]);
+  if(zones&&!n(T.PUMP))out.push(['hint','শহরে পানির পাম্প নেই। নদীর পাড়ে পাম্প বসাও, নইলে টিউবওয়েলের ভরসায় কোনো ভবন স্তর ১-এর ওপরে উঠবে না।']);
+  else if(n(T.PUMP)&&S.woff===n(T.PUMP))out.push(['crit','কোনো পাম্পে বিদ্যুৎ নেই, তাই শহরে পানি যাচ্ছে না।']);
+  else{
+    if(S.wuse>S.wcap)out.push(['crit',`পানির ঘাটতি: চাহিদা ${fmt(S.wuse)}, সরবরাহ ${fmt(S.wcap)}। আরেকটা পাম্প বসাও।`]);
+    if(S.pumpsDirty)out.push(['hint',`${bn(S.pumpsDirty)}টি পাম্প দূষিত নদী থেকে পানি তুলছে। আউটলেট পাম্পের ভাটিতে (পূর্বে) সরাও, বা শোধনাগার বানাও।`]);
+    if(S.wdry)out.push(['hint',`${bn(S.wdry)}টি জোনে পানির লাইন পৌঁছায়নি। পাইপ রাস্তার নিচ দিয়ে যায়।`]);
+  }
+  if(zones&&!n(T.OUTLET)&&!n(T.TREAT))out.push(['hint','পয়ঃনিষ্কাশন নেই। নদীর পাড়ে স্যুয়েজ আউটলেট বসাও, নইলে কোনো ভবন স্তর ২-এর ওপরে উঠবে না।']);
+  else if(n(T.OUTLET)+n(T.TREAT)){
+    if(S.suse>S.scap)out.push(['crit',`পয়ঃনিষ্কাশনের ঘাটতি: চাহিদা ${fmt(S.suse)}, ক্ষমতা ${fmt(S.scap)}।`]);
+    if(S.soff)out.push(['hint',`${bn(S.soff)}টি শোধনাগারে বিদ্যুৎ নেই।`]);
+    if(S.sdry)out.push(['hint',`${bn(S.sdry)}টি জোনে পয়ঃনিষ্কাশনের লাইন পৌঁছায়নি।`]);
+  }
+  if(S.pop>300&&!n(T.DUMP)&&!n(T.INCIN))out.push(['hint','ময়লা সংগ্রহের ব্যবস্থা নেই। ভাগাড় বসাও, নইলে রাস্তায় ময়লা জমবে।']);
+  else if(n(T.DUMP)+n(T.INCIN)){
+    if(S.dumpsFull&&S.dumpsFull===n(T.DUMP)&&!n(T.INCIN))out.push(['crit','সব ভাগাড় ভরে গেছে! নতুন ভাগাড় বা চুল্লি বানাও।']);
+    else if(S.tgen>S.tcap)out.push(['crit',`ময়লা জমছে: মাসে ${fmt(S.tgen)} তৈরি হয়, কিন্তু সংগ্রহ ক্ষমতা ${fmt(S.tcap)}।`]);
+    if(S.dumpStore&&S.dumpFill>S.dumpStore*0.85&&S.dumpsFull<n(T.DUMP))out.push(['hint','ভাগাড় প্রায় ভরে গেছে। নতুন জায়গা খোঁজো।']);
+    if(S.incOff)out.push(['hint',`${bn(S.incOff)}টি চুল্লিতে বিদ্যুৎ নেই।`]);
+    if(S.tuncov)out.push(['hint',`${bn(S.tuncov)}টি প্লট ময়লার গাড়ির নাগালের বাইরে।`]);
+  }
+  if(S.tpiled)out.push(['hint',`${bn(S.tpiled)}টি প্লটে ময়লা জমে আছে, তাই সেখানে জমির দাম কমছে।`]);
+  if(far)out.push(['hint',`${bn(far)}টি জোন রাস্তা থেকে দূরে, তাই খালি পড়ে আছে।`]);
+  if(hurt)out.push(['hint',`কারখানার দূষণে ${bn(hurt)}টি আবাসিক প্লট ভুগছে। মাঝে পার্ক দাও বা শিল্প দূরে সরাও।`]);
+  if(st.month-depl.month<4)out.push(['crit',`${bn(depl.n)}টি খনির মজুদ ফুরিয়ে গেছে। ফুরানো খনি এখন সাধারণ কারখানা হিসেবে চলছে। "সম্পদ" স্তরে নতুন মজুদ খোঁজো।`]);
+  if(S.resLow)out.push(['hint',`${bn(S.resLow)}টি খনি বা তেলক্ষেত্রের মজুদ ২০%-এর নিচে নেমেছে।`]);
+  if(S.forestThin)out.push(['hint',`${bn(S.forestThin)}টি কাঠশিল্পে গাছ কমে গেছে। বন নিজে থেকে আবার গজায়, তবে সময় লাগে।`]);
+  if(S.farmSmog)out.push(['hint',`দূষণে ${bn(S.farmSmog)}টি খামারের ফসল কমছে। কৃষি জমি কারখানা আর খনি থেকে দূরে রাখো।`]);
+  if(!S.nSpec&&n(T.I)>=6)out.push(['hint','মানচিত্রে বন, উর্বর জমি, লোহা, তেল আর কয়লা আছে। "সম্পদ" স্তর দেখে তার ওপর শিল্প জোন করো, বেশি আয় হবে।']);
+  if(ledger.inc+ledger.res-ledger.up<0&&st.funds>=0)out.push(['hint','মাসিক হিসাব ঘাটতিতে চলছে।']);
+  if(st.tax>=14)out.push(['hint','কর বেশি, তাই নতুন মানুষ আর ব্যবসা আসতে চাইছে না।']);
+  const k=nOwned();
+  if(k<9&&S.pop>=PLOT_POP[k]&&st.funds>=PLOT_PRICE[k])out.push(['ok','নতুন এলাকা কেনার সময় হয়েছে! "এলাকা কেনো" টুল দিয়ে পাশের এলাকা কেনো।']);
+  const best=Object.entries(dem).sort((a,b)=>b[1]-a[1])[0];
+  const label={R:'আবাসিক (হলুদ)',C:'বাণিজ্যিক (লাল)',I:'শিল্প (বেগুনি)'};
+  if(best[1]>0.35)out.push(['ok',`${label[best[0]]} জোনের চাহিদা বেশি। আরও জোন করো।`]);
+  if(!out.length)out.push(['ok','শহর ঠিকঠাক চলছে।']);
+  out.sort((a,b)=>(a[0]==='crit'?0:1)-(b[0]==='crit'?0:1));   // emergencies first; stable, so the rest keep their order
+  const ul=$('advice'); ul.innerHTML='';
+  out.slice(0,6).forEach(([c,t])=>{const li=document.createElement('li');li.className=c;li.textContent=t;ul.appendChild(li);});
+}
+
+/* ---------- UI ---------- */
+function updateUI(){
+  $('date').textContent=`${MONTHS[st.month%12]}, বছর ${bn(Math.floor(st.month/12)+1)}`;
+  const f=$('sFunds'); f.textContent=taka(st.funds); f.className=st.funds<0?'neg':'';
+  $('sPop').textContent=fmt(S.pop); $('sJobs').textContent=fmt(S.cj+S.ij);
+  const net=ledger.inc+ledger.res-ledger.up, n=$('sNet'); n.textContent=(net>=0?'+':'')+taka(net); n.className=net<0?'neg':'pos';
+  $('lInc').textContent=taka(ledger.inc); $('lUp').textContent=taka(ledger.up);
+  $('lRes').textContent=S.nSpec?`${taka(ledger.res)} · ${bn(S.nSpec)}টি`:'—';
+  const m=$('lMine'); m.textContent=(S.mineMax?bn(Math.round(S.mineAmt/S.mineMax*100))+'%':'—')+(S.resGone?` · ${bn(S.resGone)}টি ফুরিয়েছে`:'');
+  m.style.color=S.resGone||S.resLow?'var(--warn)':'';
+  const pair=(id,a,b)=>{const e=$(id);e.textContent=`${fmt(a)} / ${fmt(b)}`;e.style.color=a>b?'var(--warn)':'';};
+  pair('lPow',S.use,S.cap); pair('lWat',S.wuse,S.wcap); pair('lSew',S.suse,S.scap); pair('lTrash',S.tgen,S.tcap);
+  $('lDump').textContent=S.dumpStore?bn(Math.round(S.dumpFill/S.dumpStore*100))+'%':'—';
+  $('tax').value=st.tax; $('taxOut').textContent=bn(st.tax)+'%';
+  const k=nOwned();
+  $('plots').innerHTML=k>=9?`<b>৯ / ৯</b> এলাকা। পুরো মানচিত্র তোমার!`:
+    `<b>${bn(k)} / ৯</b> এলাকা কেনা হয়েছে।<br>পরের এলাকার জন্য জনসংখ্যা লাগবে <b>${fmt(PLOT_POP[k])}</b> (এখন ${fmt(S.pop)}), দাম <b>${taka(PLOT_PRICE[k])}</b>।`;
+}
+function drawRCI(){
+  for(const k of ['R','C','I']){dShow[k]+=(dem[k]-dShow[k])*0.08;const v=clamp(dShow[k],-1,1),el=$('d'+k);
+    el.style.height=(Math.abs(v)*50)+'%'; el.style.bottom=v>=0?'50%':(50-Math.abs(v)*50)+'%';}
+}
+document.querySelectorAll('.tool').forEach(b=>b.addEventListener('click',()=>setTool(b.dataset.tool)));
+function setTool(t){st.tool=t;$('cv').classList.toggle('panning',t==='pan');overlayDirty=true;
+  document.querySelectorAll('.tool').forEach(b=>b.setAttribute('aria-pressed',b.dataset.tool===t));}
+function setSpeed(s){st.speed=s;document.querySelectorAll('#speed button').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.s===s));}
+function setOverlay(o){st.overlay=o;overlayDirty=true;markersDirty=true;applyOverlayLook();$('resLegend').hidden=o!=='res';document.querySelectorAll('#overlay button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.o===o));}
+document.querySelectorAll('#speed button').forEach(b=>b.addEventListener('click',()=>setSpeed(+b.dataset.s)));
+document.querySelectorAll('#overlay button').forEach(b=>b.addEventListener('click',()=>setOverlay(b.dataset.o)));
+document.querySelectorAll('#tod button').forEach(b=>b.addEventListener('click',()=>setTod(b.dataset.t)));
+document.querySelectorAll('#quality button').forEach(b=>b.addEventListener('click',()=>setQuality(b.dataset.q)));
+$('tax').addEventListener('input',e=>{st.tax=+e.target.value;computeStats();updateUI();saveSoon();});
+function armed(btn,fn,label){
+  btn.addEventListener('click',()=>{
+    if(btn.classList.contains('armed')){btn.classList.remove('armed');btn.textContent=label;fn();return;}
+    btn.classList.add('armed');btn.textContent='নিশ্চিত? আবার চাপো';
+    setTimeout(()=>{btn.classList.remove('armed');btn.textContent=label;},3000);
+  });
+}
+armed($('btnSample'),()=>{seedSample();save();},'নমুনা শহর');
+armed($('btnBlank'),()=>{seedBlank();save();},'ফাঁকা মানচিত্র');
+let flashTimer;
+function flash(msg){$('flash').textContent=msg;clearTimeout(flashTimer);flashTimer=setTimeout(()=>$('flash').textContent='',2200);}
+
+/* ---------- building ---------- */
+function canPlace(i,tool){
+  const t=type[i];
+  if(tool==='pan'||tool==='buy')return -1;
+  if(!owned[plotOf(i)])return -1;
+  if(tool==='bulldoze')return t!==T.GROUND&&t!==T.WATER?COST.bulldoze:-1;
+  if(tool==='road'){if(t===T.GROUND)return COST.road;if(t===T.WATER)return COST.bridge;return -1;}
+  if(ON_BANK.has(TOOL_T[tool]))return t===T.GROUND&&nearRiver(i)?COST[tool]:-1;
+  return t===T.GROUND?COST[tool]:-1;
+}
+let changed=false;
+function place(x,y){
+  if(x<0||y<0||x>=W||y>=H)return;
+  const i=y*W+x, tool=st.tool, c=canPlace(i,tool);
+  if(c<0){
+    if(tool!=='pan'&&tool!=='buy'&&!owned[plotOf(i)])flash('এই এলাকা এখনও কেনা হয়নি');
+    else if(ON_BANK.has(TOOL_T[tool])&&type[i]===T.GROUND)flash('এটা নদীর পাড়ে বসাতে হবে');
+    return;
+  }
+  if(st.funds<c){flash('তহবিল নেই');return;}
+  st.funds-=c;
+  if(tool==='bulldoze')type[i]=terrain[i]?T.WATER:T.GROUND;
+  else type[i]=TOOL_T[tool];
+  lvl[i]=0; trash[i]=0; fill[i]=0;
+  markTile(i); changed=true;
+}
+function commit(){if(!changed)return;changed=false;computeRoadNear();recompute();markersDirty=true;overlayDirty=true;updateUI();saveSoon();}
+function buyPlot(p){
+  const k=nOwned();
+  if(owned[p])return flash('এই এলাকা আগেই কেনা');
+  if(!plotBuyable(p))return flash('আগে পাশের এলাকা কিনতে হবে');
+  if(S.pop<PLOT_POP[k])return flash(`জনসংখ্যা ${fmt(PLOT_POP[k])} হলে কেনা যাবে`);
+  if(st.funds<PLOT_PRICE[k])return flash('তহবিল নেই');
+  st.funds-=PLOT_PRICE[k]; owned[p]=1; flash('নতুন এলাকা কেনা হলো!');
+  overlayDirty=true; advise(); updateUI(); save();
+}
+
+/* ---------- save / load ---------- */
+// v0.5 adds an optional "res" field (resources left per tile); a v0.4 save without it loads with full deposits
+const KEY='nagar-porikolpok-v2';
+const enc=u8=>{let s='';for(let i=0;i<u8.length;i+=8192)s+=String.fromCharCode.apply(null,u8.subarray(i,i+8192));return btoa(s);};
+const dec=b=>{const s=atob(b),u=new Uint8Array(s.length);for(let i=0;i<s.length;i++)u[i]=s.charCodeAt(i);return u;};
+function save(){try{localStorage.setItem(KEY,JSON.stringify({w:W,type:enc(type),lvl:enc(lvl),trash:enc(new Uint8Array(trash.buffer)),fill:enc(new Uint8Array(fill.buffer)),
+  res:enc(new Uint8Array(resAmt.buffer)),owned:Array.from(owned),funds:st.funds,month:st.month,tax:st.tax}));}catch(e){}}
+let saveTimer; function saveSoon(){clearTimeout(saveTimer);saveTimer=setTimeout(save,500);}
+function load(){try{const d=JSON.parse(localStorage.getItem(KEY)||'null');
+  if(!d||d.w!==W)return false;makeTerrain();
+  type.set(dec(d.type));lvl.set(dec(d.lvl));trash.set(new Float32Array(dec(d.trash).buffer));fill.set(new Float32Array(dec(d.fill).buffer));owned.set(d.owned);
+  if(d.res){const a=new Float32Array(dec(d.res).buffer);if(a.length===N)resAmt.set(a);}
+  st.funds=d.funds;st.month=d.month;st.tax=d.tax;refreshAll();fitCam(true);return true;}catch(e){return false;}}
+
+/* ================= 3D RENDERER ================= */
+const board=$('board'), cv=$('cv');
+let markersDirty=true, overlayDirty=true;
+function fail(msg){const e=$('glerr');e.style.display='grid';e.textContent=msg;}
+if(!window.THREE){fail('three.min.js ফাইলটা পাওয়া যায়নি। এটা গেমের HTML ফাইলের পাশে একই ফোল্ডারে থাকতে হবে।');return;}
+THREE.ColorManagement.legacyMode=false;   // hex colours below are sRGB
+let renderer;
+try{renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true,powerPreference:'high-performance'});}catch(e){}
+if(!renderer){fail('এই ব্রাউজারে WebGL চালু নেই, তাই 3D দেখানো যাচ্ছে না। Chrome বা Edge-এ hardware acceleration চালু করো।');return;}
+renderer.outputEncoding=THREE.sRGBEncoding;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(36,1,0.2,1400);
+const U={night:{value:0},time:{value:0}};
+const C3=h=>new THREE.Color(h), P3=a=>a.map(C3);
+const shade=(c,f)=>new THREE.Color(c.r*f,c.g*f,c.b*f);
+const pick=(arr,h)=>arr[Math.floor(h*arr.length)%arr.length];
+const MAXANISO=renderer.capabilities.getMaxAnisotropy();
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---- palette ---- */
+const PAL={
+  house:P3([0xf1e7d2,0xe9dcc3,0xf4f0e8,0xe2d4bd,0xefe0cf,0xdfe6e4,0xe8d2b0,0xd9e4cf]),
+  roof:P3([0xb4533c,0x93412f,0x5f6d7a,0xa9673c,0x466f6a,0x7a4b3a,0xc0703f,0x8d9aa3]),
+  apt:P3([0xe6dfd2,0xd9cfbf,0xece5da,0xcfc6b8,0xe3d6c6,0xd4dbd6,0xf0d9c0,0xcbd8e0,0xe8c9b9]),
+  office:P3([0xc9cfd4,0xd8d2c6,0xb9c3cb,0xcfc9c0,0xe1ddd3]),
+  glass:P3([0x6f93ab,0x7fa3bb,0x5d7f96,0x90aec0,0x6d8a80,0x8a9fb5]),
+  awning:P3([0xd1504b,0x2f6f9f,0xe2a93b,0x4f8a6d,0xb5487a]),
+  shed:P3([0xb3aea4,0xa39f98,0xbdb3a0,0x9ea7a8]),
+  fact:P3([0x9e9a93,0x8c8a86,0xa89f8c,0x8f958f]),
+  metal:P3([0x7b8c99,0x6f7f72,0x8f9aa0,0x9b6f5a]),
+  container:P3([0xc0503b,0x2f6f9f,0xd29a2e,0x4f8a6d,0x7a6aa8]),
+  tree:P3([0x4f8a3c,0x3f7a35,0x5b9441,0x3d6e3a,0x67a04a,0x2f6b3a]),
+  car:P3([0xd64541,0x2f6f9f,0xece8de,0x3a3d42,0xe2a93b,0x4f8a6d,0xb8bcc0,0x1f4f7a]),
+  trashMound:P3([0x6e6450,0x7d7461,0x5f6650,0x857a62]),
+  crop:P3([0x6f9a3a,0x8fae3f,0xd2b048,0xe0c83a,0x5f8a34]),   // green paddy, young paddy, ripe grain, mustard, jute
+  spoil:P3([0x8a7d6a,0x7b6f60,0x9a8b72]),
+};
+const K={tank:C3(0x2b2e33),brick:C3(0xa4503a),concrete:C3(0xc9c5bb),darkC:C3(0x8d8a83),trunk:C3(0x6b4b2e),door:C3(0x4a3a2c),
+  walk:C3(0xbcb6a6),asphalt:C3(0x4b5055),mark:C3(0xeee6c4),wallLow:C3(0xd8d0c0),pump:C3(0x3f87b5),pumpHouse:C3(0xdcd8cc),
+  pipe:C3(0x7e8b93),water:C3(0x4d8aa6),sludge:C3(0x6b5a3a),treatWater:C3(0x5f8f7f),yellow:C3(0xe0a92a),fence:C3(0x8b9a86),
+  white:C3(0xf2f2ee),red:C3(0xc23b30),lamp:C3(0xffd27a),redLight:C3(0xff4030),dark:C3(0x2a2c30),bench:C3(0x8a5a36),
+  cool:C3(0xcdcac2),truck:C3(0x3f7f3a),truckBox:C3(0xa6aba7),
+  soil:C3(0x7a5a3a),yard:C3(0xb8a27a),barn:C3(0xa3412f),silo:C3(0xd3d6d2),hay:C3(0xd8b75a),
+  log:C3(0x7b5333),plank:C3(0xd8b585),sawdust:C3(0x9c8a68),steel:C3(0x5d6670),ore:C3(0xa0583a),gravel:C3(0xb9ad92),
+  beam:C3(0x3b3f45),tankW:C3(0xe4e4df),coal:C3(0x2a2a2c),pit:C3(0x45413c),conveyor:C3(0x6d6f72),flame:C3(0xff9a3c)};
+
+/* ---- materials ---- */
+// buildings get procedural windows: aWin = [style, floor height, column width, seed]
+// style 1 punched windows, 2 ribbon windows, 3 curtain-wall glass. At night some windows glow.
+function withWindows(mat){
+  mat.onBeforeCompile=sh=>{
+    sh.uniforms.uNight=U.night;
+    sh.vertexShader=sh.vertexShader
+      .replace('#include <common>','#include <common>\nattribute vec4 aWin;\nvarying vec4 vWin;\nvarying vec3 vLoc;\nvarying vec3 vON;')
+      .replace('#include <begin_vertex>','#include <begin_vertex>\nvWin=aWin; vON=normal;\nvec3 iSc=vec3(length(instanceMatrix[0].xyz),length(instanceMatrix[1].xyz),length(instanceMatrix[2].xyz));\nvLoc=(position+vec3(0.5,0.0,0.5))*iSc;');
+    sh.fragmentShader=sh.fragmentShader
+      .replace('#include <common>','#include <common>\nuniform float uNight;\nvarying vec4 vWin;\nvarying vec3 vLoc;\nvarying vec3 vON;\nfloat hw21(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}')
+      .replace('#include <color_fragment>',`#include <color_fragment>
+        float winMask=0.0, winLit=0.0;
+        if(vWin.x>0.5 && abs(vON.y)<0.5){
+          float u = abs(vON.x)>0.5 ? vLoc.z : vLoc.x;
+          vec2 cell=vec2(u/vWin.z, vLoc.y/vWin.y); vec2 id=floor(cell); vec2 f=fract(cell);
+          float mx=step(0.22,f.x)*step(f.x,0.78), my=step(0.3,f.y)*step(f.y,0.8);
+          if(vWin.x>1.5){mx=step(0.02,f.x)*step(f.x,0.98);}
+          if(vWin.x>2.5){mx=step(0.07,f.x)*step(f.x,0.93); my=step(0.1,f.y)*step(f.y,0.92);}
+          winMask=mx*my;
+          float r=hw21(id+vec2(vWin.w*0.137, vON.x*3.1+vON.z*7.3));
+          winLit=step(1.0-0.62*uNight, r)*uNight;
+          diffuseColor.rgb=mix(diffuseColor.rgb, vec3(0.10,0.15,0.20)+r*0.05, winMask);
+        }`)
+      .replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\nroughnessFactor=mix(roughnessFactor,0.12,winMask);')
+      .replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\ntotalEmissiveRadiance+=winMask*winLit*vec3(1.0,0.74,0.42)*2.2;');
+  };
+  return mat;
+}
+const matBuild=withWindows(new THREE.MeshStandardMaterial({roughness:0.82,metalness:0}));
+const matGlass=withWindows(new THREE.MeshStandardMaterial({roughness:0.35,metalness:0.2}));
+const matPlain=new THREE.MeshStandardMaterial({roughness:0.78,metalness:0.05});
+const matLeaf=new THREE.MeshStandardMaterial({roughness:0.95,flatShading:true});
+const matFlat=new THREE.MeshStandardMaterial({roughness:0.92});
+const matEmit=new THREE.MeshBasicMaterial({toneMapped:false});
+const glowTex=(()=>{const c=document.createElement('canvas');c.width=c.height=64;const g=c.getContext('2d');
+  const gr=g.createRadialGradient(32,32,0,32,32,32);gr.addColorStop(0,'rgba(255,255,255,1)');gr.addColorStop(1,'rgba(255,255,255,0)');
+  g.fillStyle=gr;g.fillRect(0,0,64,64);return new THREE.CanvasTexture(c);})();
+const matGlow=new THREE.MeshBasicMaterial({map:glowTex,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false,opacity:0});
+const fadeable=[matBuild,matGlass,matPlain,matLeaf];
+function applyOverlayLook(){const on=st.overlay!=='none'&&st.overlay!=='plots';
+  for(const m of fadeable){m.transparent=on;m.opacity=on?0.35:1;m.needsUpdate=true;}}
+
+/* ---- unit geometries (base at y=0) ---- */
+function prismGeom(){   // gable roof: ridge along X at the top, 1x1 base
+  const v=[-.5,0,.5, .5,0,.5, .5,1,0,  -.5,0,.5, .5,1,0, -.5,1,0,
+           .5,0,-.5, -.5,0,-.5, -.5,1,0,  .5,0,-.5, -.5,1,0, .5,1,0,
+           .5,0,.5, .5,0,-.5, .5,1,0,  -.5,0,-.5, -.5,0,.5, -.5,1,0];
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(v,3));g.computeVertexNormals();return g;
+}
+const G={
+  box:new THREE.BoxGeometry(1,1,1).translate(0,0.5,0),
+  prism:prismGeom(),
+  cyl:new THREE.CylinderGeometry(1,1,1,14).translate(0,0.5,0),
+  tower:new THREE.LatheGeometry([[1,0],[0.9,0.15],[0.8,0.35],[0.72,0.55],[0.69,0.7],[0.72,0.86],[0.78,1]].map(([x,y])=>new THREE.Vector2(x,y)),22),
+  leaf:new THREE.IcosahedronGeometry(1,1),
+  leafLo:new THREE.IcosahedronGeometry(1,0),
+  cone:new THREE.ConeGeometry(1,1,7).translate(0,0.5,0),
+  glow:new THREE.PlaneGeometry(1,1).rotateX(-Math.PI/2),
+};
+const KINDS={
+  box:{g:'box',m:matBuild,win:true}, glass:{g:'box',m:matGlass,win:true}, prism:{g:'prism',m:matPlain},
+  cyl:{g:'cyl',m:matPlain}, tower:{g:'tower',m:matPlain}, leaf:{g:'leaf',m:matLeaf}, leafLo:{g:'leafLo',m:matLeaf}, cone:{g:'cone',m:matLeaf},
+  flat:{g:'box',m:matFlat,cast:false}, emit:{g:'box',m:matEmit,cast:false,recv:false}, glow:{g:'glow',m:matGlow,cast:false,recv:false},
+};
+
+/* ---- part recorder: buildings are emitted as instanced primitives, batched per chunk ---- */
+let PB=null, EM=null, lowPoly=false;   // lowPoly: far countryside uses cheaper foliage
+function newParts(){const o={};for(const k in KINDS)o[k]={m:[],c:[],w:[]};return o;}
+function mY(cx,y0,cz,sx,sy,sz,rot){const c=Math.cos(rot||0),s=Math.sin(rot||0);return [c*sx,0,-s*sx,0, 0,sy,0,0, s*sz,0,c*sz,0, cx,y0,cz,1];}
+function add(k,m,c,w){if(lowPoly&&k==='leaf')k='leafLo';const a=PB[k];for(let j=0;j<16;j++)a.m.push(m[j]);a.c.push(c.r,c.g,c.b);if(KINDS[k].win)a.w.push(w?w[0]:0,w?w[1]:0.3,w?w[2]:0.2,w?w[3]:0);}
+const box=(x0,z0,x1,z1,y0,y1,c,w)=>add(w&&w[0]===3?'glass':'box',mY((x0+x1)/2,y0,(z0+z1)/2,x1-x0,y1-y0,z1-z0),c,w);
+const flat=(x0,z0,x1,z1,y0,y1,c)=>add('flat',mY((x0+x1)/2,y0,(z0+z1)/2,x1-x0,y1-y0,z1-z0),c);
+const lit=(x0,z0,x1,z1,y0,y1,c)=>add('emit',mY((x0+x1)/2,y0,(z0+z1)/2,x1-x0,y1-y0,z1-z0),c);
+const glow=(cx,cz,r,c)=>add('glow',mY(cx,0.05,cz,r*2,1,r*2),c);
+const prism=(x0,z0,x1,z1,y,h,c,alongX)=>add('prism',alongX?mY((x0+x1)/2,y,(z0+z1)/2,x1-x0,h,z1-z0,0):mY((x0+x1)/2,y,(z0+z1)/2,z1-z0,h,x1-x0,Math.PI/2),c);
+const cyl=(cx,cz,r,y0,y1,c)=>add('cyl',mY(cx,y0,cz,r,y1-y0,r),c);
+const cone=(cx,cz,r,y0,y1,c)=>add('cone',mY(cx,y0,cz,r,y1-y0,r),c);
+const blob=(cx,cy,cz,rx,ry,rz,c)=>add('leaf',mY(cx,cy,cz,rx,ry,rz),c);
+const coolTower=(cx,cz,r,y0,y1,c)=>add('tower',mY(cx,y0,cz,r,y1-y0,r),c);
+function pipe(ax,az,bx,bz,yc,r,c){   // horizontal pipe along X or Z
+  if(Math.abs(bx-ax)>=Math.abs(bz-az)){const x0=Math.min(ax,bx),L=Math.abs(bx-ax);add('cyl',[0,-r,0,0, L,0,0,0, 0,0,r,0, x0,yc,az,1],c);}
+  else{const z0=Math.min(az,bz),L=Math.abs(bz-az);add('cyl',[r,0,0,0, 0,0,L,0, 0,-r,0,0, ax,yc,z0,1],c);}
+}
+function parapet(x0,z0,x1,z1,y,h,c){const t=0.025;
+  box(x0,z0,x1,z0+t,y,y+h,c);box(x0,z1-t,x1,z1,y,y+h,c);box(x0,z0,x0+t,z1,y,y+h,c);box(x1-t,z0,x1,z1,y,y+h,c);}
+function compoundWall(x,y,c){const t=0.035,hh=0.1,a=0.04,b=0.96;   // low boundary wall with a gate on the front
+  box(x+a,y+a,x+b,y+a+t,0,hh,c);box(x+a,y+a,x+a+t,y+b,0,hh,c);box(x+b-t,y+a,x+b,y+b,0,hh,c);
+  box(x+a,y+b-t,x+0.4,y+b,0,hh,c);box(x+0.6,y+b-t,x+b,y+b,0,hh,c);}
+function tree(X,Z,s,h,y0=0){
+  if(h>0.82){   // coconut palm
+    cyl(X,Z,0.016*s,y0,y0+0.62*s,K.trunk);
+    blob(X,y0+0.62*s,Z,0.2*s,0.06*s,0.2*s,pick(PAL.tree,h*7));
+    return y0+0.66*s;
+  }
+  cyl(X,Z,0.028*s,y0,y0+0.2*s,K.trunk);
+  const c=pick(PAL.tree,h*13%1);
+  if(h<0.18){cone(X,Z,0.15*s,y0+0.12*s,y0+0.7*s,c);return y0+0.7*s;}
+  blob(X,y0+0.34*s,Z,0.19*s,0.17*s,0.19*s,c);
+  if(h>0.5)blob(X+0.07*s,y0+0.44*s,Z-0.05*s,0.12*s,0.11*s,0.12*s,shade(c,1.12));
+  return y0+0.52*s;
+}
+const FL=0.3;   // one storey
+
+function drawRes(x,y,L,i,h,h2,h3){
+  if(!L)return 0;
+  if(L===1){
+    const wall=pick(PAL.house,h2), floors=h<0.35?2:1, zh=floors*FL+0.04, wide=h2<0.5;
+    const w=wide?0.56:0.46, d=wide?0.44:0.54, x0=x+0.5-w/2+(h3-0.5)*0.12, z0=y+0.14, x1=x0+w, z1=z0+d;
+    compoundWall(x,y,K.wallLow);
+    box(x0,z0,x1,z1,0,zh,wall,[1,FL,0.17,i]);
+    box(x0+w*0.42,z1,x0+w*0.58,z1+0.012,0,0.22,K.door);
+    let top;
+    if(h3<0.45){parapet(x0,z0,x1,z1,zh,0.06,wall);cyl(x0+0.1,z0+0.1,0.05,zh,zh+0.11,K.tank);top=zh+0.11;}   // flat "pucca" roof
+    else{prism(x0-0.03,z0-0.03,x1+0.03,z1+0.03,zh,0.2,pick(PAL.roof,h3),wide);top=zh+0.2;}
+    if(h>0.3)tree(x+0.84,y+0.8,0.8,h);
+    return top;
+  }
+  if(L===2){   // 3–5 storey flat-roofed building with balconies and black water tanks
+    const floors=3+((h*3)|0), zh=floors*FL, wall=pick(PAL.apt,h2), trim=shade(wall,0.8);
+    const x0=x+0.12,z0=y+0.1,x1=x+0.88,z1=y+0.82;
+    compoundWall(x,y,K.wallLow);
+    box(x0,z0,x1,z1,0,zh,wall,[1,FL,0.19,i]);
+    for(let f=1;f<floors;f++){box(x0+0.1,z1,x1-0.1,z1+0.07,f*FL,f*FL+0.025,trim);box(x0+0.1,z1+0.055,x1-0.1,z1+0.07,f*FL+0.025,f*FL+0.1,trim);}
+    parapet(x0,z0,x1,z1,zh,0.07,trim);
+    box(x0+0.06,z0+0.06,x0+0.28,z0+0.28,zh,zh+0.24,wall);
+    cyl(x1-0.14,z0+0.16,0.06,zh,zh+0.13,K.tank); if(h3>0.5)cyl(x1-0.3,z0+0.16,0.06,zh,zh+0.13,K.tank);
+    return zh+0.24;
+  }
+  // L3: 8–14 storey apartment tower on a parking floor
+  const floors=8+((h*7)|0), zh=floors*FL, wall=pick(PAL.apt,h2), trim=shade(wall,0.75);
+  const x0=x+0.08,z0=y+0.08,x1=x+0.92,z1=y+0.92;
+  box(x0+0.03,z0+0.03,x1-0.03,z1-0.03,0,FL,shade(wall,0.55));
+  box(x0,z0,x1,z1,FL,zh,wall,[1,FL,0.16,i]);
+  box(x0+0.36,z1,x0+0.5,z1+0.03,FL,zh+0.12,trim);
+  for(let f=2;f<floors;f++){
+    box(x0+0.04,z1,x0+0.34,z1+0.07,f*FL,f*FL+0.025,trim); box(x0+0.04,z1+0.06,x0+0.34,z1+0.07,f*FL+0.025,f*FL+0.09,trim);
+    box(x1,z0+0.5,x1+0.07,z1-0.06,f*FL,f*FL+0.025,trim);
+  }
+  parapet(x0,z0,x1,z1,zh,0.08,trim);
+  box(x0+0.08,z0+0.08,x0+0.32,z0+0.3,zh,zh+0.28,wall);
+  cyl(x1-0.16,z0+0.18,0.07,zh,zh+0.15,K.tank); cyl(x1-0.34,z0+0.18,0.07,zh,zh+0.15,K.tank); if(h3>0.5)cyl(x1-0.16,z0+0.38,0.07,zh,zh+0.15,K.tank);
+  return zh+0.28;
+}
+function drawCom(x,y,L,i,h,h2,h3){
+  if(!L)return 0;
+  const wall=pick(PAL.office,h2);
+  if(L===1){   // shops with awnings and signboards
+    const floors=h>0.5?2:1, zh=floors*FL+0.05, acc=pick(PAL.awning,h3);
+    const x0=x+0.08,z0=y+0.16,x1=x+0.92,z1=y+0.86;
+    box(x0,z0,x1,z1,0,FL,shade(wall,0.95),[2,FL,0.42,i]);
+    box(x0,z0,x1,z1,FL,zh,wall,floors>1?[1,FL,0.16,i+3]:null);
+    box(x0+0.02,z1,x1-0.02,z1+0.12,FL*0.8,FL*0.86,acc);
+    box(x0+0.12,z1,x1-0.12,z1+0.02,FL+0.03,FL+0.13,acc);
+    box(x0+0.1,z0+0.1,x0+0.24,z0+0.22,zh,zh+0.08,K.concrete);
+    return zh+0.13;
+  }
+  if(L===2){   // 4–7 storey offices with ribbon windows
+    const floors=4+((h*4)|0); let zh=floors*FL;
+    const x0=x+0.1,z0=y+0.1,x1=x+0.9,z1=y+0.9;
+    box(x0,z0,x1,z1,0,zh,wall,[2,FL,0.4,i]);
+    if(h3>0.5){box(x0+0.14,z0+0.14,x1-0.14,z1-0.14,zh,zh+FL*2,wall,[2,FL,0.4,i+7]);zh+=FL*2;}
+    box(x0+0.2,z0+0.2,x0+0.36,z0+0.34,zh,zh+0.1,K.concrete); box(x1-0.3,z1-0.3,x1-0.18,z1-0.16,zh,zh+0.08,K.concrete);
+    return zh+0.1;
+  }
+  // L3: glass tower on a podium
+  const floors=12+((h*13)|0), th=floors*FL, glass=pick(PAL.glass,h3), tw=0.6+h2*0.14;
+  box(x+0.05,y+0.05,x+0.95,y+0.95,0,FL*2,wall,[2,FL,0.45,i]);
+  const a=x+0.5-tw/2,b=y+0.5-tw/2,top=FL*2+th;
+  box(a,b,a+tw,b+tw,FL*2,top,glass,[3,FL,0.11,i]);
+  box(a+0.07,b+0.07,a+tw-0.07,b+tw-0.07,top,top+0.24,shade(glass,0.75),[3,0.24,0.11,i+1]);
+  box(x+0.49,y+0.49,x+0.51,y+0.51,top+0.24,top+0.8,K.dark);
+  lit(x+0.485,y+0.485,x+0.515,y+0.515,top+0.8,top+0.83,K.redLight);
+  return top+0.83;
+}
+function drawInd(x,y,L,i,h,h2,h3){
+  if(!L)return 0;
+  const wall=pick(PAL.fact,h2), roofC=pick(PAL.metal,h3);
+  if(L===1){   // warehouse with a metal roof and shipping containers
+    const x0=x+0.08,z0=y+0.14,x1=x+0.92,z1=y+0.78,zh=0.42;
+    box(x0,z0,x1,z1,0,zh,pick(PAL.shed,h2));
+    prism(x0-0.02,z0-0.02,x1+0.02,z1+0.02,zh,0.13,roofC,true);
+    box(x0+0.25,z1,x0+0.55,z1+0.012,0,0.3,K.dark);
+    box(x+0.1,y+0.84,x+0.38,y+0.95,0,0.11,pick(PAL.container,h3)); if(h>0.5)box(x+0.44,y+0.84,x+0.72,y+0.95,0,0.11,pick(PAL.container,h));
+    return zh+0.13;
+  }
+  const big=L===3, x0=x+0.06,z0=y+0.08,x1=x+(big?0.64:0.7),z1=y+0.92,zh=big?0.75:0.6;
+  box(x0,z0,x1,z1,0,zh,wall,[1,zh/2,0.2,i]);
+  for(let k=0;k<3;k++){const a=x0+(x1-x0)*k/3,b=x0+(x1-x0)*(k+1)/3;prism(a,z0,b,z1,zh,0.18,roofC,false);}   // saw-tooth roof
+  const ch=big?2.6:1.9, cx=x+(big?0.82:0.84), cz=y+0.2;
+  cyl(cx,cz,0.065,0,ch,K.brick); cyl(cx,cz,0.072,ch*0.78,ch*0.84,K.white); cyl(cx,cz,0.072,ch*0.9,ch*0.94,K.white);
+  EM.push([cx,ch,cz,big?1.3:1,false]);
+  if(big){cyl(x+0.82,y+0.62,0.12,0,0.62,K.concrete);blob(x+0.82,0.62,y+0.62,0.12,0.07,0.12,K.concrete);cyl(x+0.82,y+0.86,0.07,0,0.4,K.concrete);}
+  return ch;
+}
+
+/* ---- specialised industry: one building set per resource, drawn instead of drawInd() ---- */
+function fieldRows(x0,z0,x1,z1,c,hgt){   // crop rows along X on a strip of ploughed soil
+  flat(x0,z0,x1,z1,0,0.012,K.soil);
+  for(let z=z0+0.03;z+0.06<=z1;z+=0.1)flat(x0+0.02,z,x1-0.02,z+0.06,0,hgt,c);
+}
+function barn(x0,z0,x1,z1,hh){
+  box(x0,z0,x1,z1,0,hh,K.barn);
+  prism(x0-0.02,z0-0.02,x1+0.02,z1+0.02,hh,hh*0.55,shade(K.barn,0.62),true);
+  box(x0+(x1-x0)*0.38,z1,x0+(x1-x0)*0.62,z1+0.01,0,hh*0.8,K.door);
+}
+function silo(cx,cz,r,hh){cyl(cx,cz,r,0,hh,K.silo);blob(cx,hh,cz,r,r*0.7,r,shade(K.silo,0.9));}
+function drawFarm(x,y,L,i,h,h2,h3){   // crop fields; bigger farms add a barn and grain silos
+  const crop=pick(PAL.crop,h2), ch=0.03+h3*0.03;
+  if(L===1&&h<0.55){fieldRows(x+0.03,y+0.03,x+0.97,y+0.97,crop,ch);return ch;}   // just a field
+  fieldRows(x+0.03,y+0.42,x+0.97,y+0.97,crop,ch);
+  flat(x+0.03,y+0.03,x+0.97,y+0.4,0,0.014,K.yard);
+  if(L===1){barn(x+0.08,y+0.08,x+0.42,y+0.34,0.2);blob(x+0.62,0,y+0.2,0.08,0.1,0.08,K.hay);blob(x+0.8,0,y+0.22,0.07,0.08,0.07,K.hay);return 0.31;}
+  if(L===2){barn(x+0.06,y+0.07,x+0.46,y+0.36,0.24);silo(x+0.62,y+0.2,0.1,0.55);silo(x+0.84,y+0.2,0.1,0.48);return 0.62;}
+  barn(x+0.05,y+0.07,x+0.38,y+0.36,0.24);
+  for(const [a,hh] of [[0.5,0.85],[0.68,0.95],[0.86,0.8]])silo(x+a,y+0.18,0.085,hh);
+  box(x+0.42,y+0.3,x+0.92,y+0.36,0.62,0.66,K.steel); box(x+0.42,y+0.28,x+0.47,y+0.38,0,0.66,K.steel);   // grain conveyor
+  return 1.0;
+}
+function logPile(x0,z0,len,n){   // logs along X, stacked in a pyramid
+  for(let row=0;row<n;row++)for(let k=0;k<n-row;k++){const z=z0+k*0.07+row*0.035;
+    pipe(x0,z,x0+len,z,0.035+row*0.06,0.035,(k+row)%2?K.log:shade(K.log,1.18));}
+}
+const TREE_SPOTS=[[0.16,0.18],[0.84,0.16],[0.15,0.84],[0.86,0.86]];
+function drawForestry(x,y,L,i,h,h2,h3){   // logging camp → sawmill; the standing trees thin out as the forest is cut
+  flat(x+0.03,y+0.03,x+0.97,y+0.97,0,0.012,K.sawdust);
+  const stand=Math.min(resStage[i],[0,4,3,2][L]); let top=0.3;
+  for(let k=0;k<stand;k++)top=Math.max(top,tree(x+TREE_SPOTS[k][0],y+TREE_SPOTS[k][1],0.9,hash(i+k*11)*0.5));
+  if(L===1){
+    logPile(x+0.3,y+0.35,0.42,3); logPile(x+0.32,y+0.58,0.36,2);
+    box(x+0.34,y+0.74,x+0.58,y+0.92,0,0.2,pick(PAL.shed,h2)); prism(x+0.32,y+0.72,x+0.6,y+0.94,0.2,0.1,pick(PAL.metal,h3),true);
+    return top;
+  }
+  if(L===2){   // open-sided sawmill shed
+    box(x+0.28,y+0.3,x+0.8,y+0.62,0,0.32,pick(PAL.shed,h2),[2,0.3,0.4,i]);
+    prism(x+0.26,y+0.28,x+0.82,y+0.64,0.32,0.14,pick(PAL.metal,h3),true);
+    logPile(x+0.25,y+0.68,0.5,3);
+    box(x+0.36,y+0.1,x+0.56,y+0.22,0,0.09,K.plank); box(x+0.38,y+0.1,x+0.54,y+0.22,0.09,0.15,shade(K.plank,0.88));
+    return Math.max(top,0.46);
+  }
+  // L3: sawmill with a boiler chimney, a log crane and stacks of planks
+  box(x+0.22,y+0.26,x+0.78,y+0.66,0,0.45,pick(PAL.fact,h2),[1,0.22,0.2,i]);
+  prism(x+0.2,y+0.24,x+0.8,y+0.68,0.45,0.16,pick(PAL.metal,h3),true);
+  cyl(x+0.7,y+0.32,0.04,0.45,1.15,K.brick); EM.push([x+0.7,1.15,y+0.32,0.6,false]);
+  logPile(x+0.22,y+0.72,0.32,3); logPile(x+0.62,y+0.72,0.28,2);
+  box(x+0.56,y+0.74,x+0.59,y+0.77,0,0.7,K.yellow); box(x+0.3,y+0.74,x+0.62,y+0.77,0.66,0.7,K.yellow);   // log crane
+  for(let k=0;k<3;k++)box(x+0.32+k*0.11,y+0.1,x+0.41+k*0.11,y+0.2,0,0.06+k*0.03,K.plank);
+  return Math.max(top,1.15);
+}
+function headframe(cx,cz,hh,c){   // steel pit-head tower with the winding wheel on top
+  const a=0.07;
+  for(const [dx,dz] of [[-1,-1],[1,-1],[-1,1],[1,1]])box(cx+dx*a-0.012,cz+dz*a-0.012,cx+dx*a+0.012,cz+dz*a+0.012,0,hh,c);
+  for(let f=1;f<=3;f++)parapet(cx-a,cz-a,cx+a,cz+a,hh*f/3.4,0.02,c);
+  box(cx-a-0.02,cz-a-0.02,cx+a+0.02,cz+a+0.02,hh,hh+0.03,c);
+  box(cx-0.01,cz-0.01,cx+0.01,cz+0.01,hh,hh+0.1,c);
+  pipe(cx-0.025,cz,cx+0.025,cz,hh+0.1,0.08,K.dark);   // wheel: a disc facing along X
+  return hh+0.18;
+}
+function drawMine(x,y,L,i,h,h2,h3){   // iron ore: pit-head, winding house, and spoil heaps that grow as the deposit is worked
+  const sg=resStage[i]||1;
+  flat(x+0.03,y+0.03,x+0.97,y+0.97,0,0.012,K.gravel);
+  blob(x+0.74,0,y+0.74,0.17+0.03*sg,0.08+0.07*sg,0.16+0.03*sg,pick(PAL.spoil,h));
+  blob(x+0.46,0,y+0.88,0.09,0.07,0.07,K.ore);   // ore waiting to be hauled away
+  let top=headframe(x+0.28,y+0.3,[0,0.6,0.85,1.1][L],K.steel);
+  box(x+0.46,y+0.12,x+0.8,y+0.4,0,0.26,pick(PAL.fact,h2),L>1?[1,0.25,0.16,i]:null);   // winding house
+  prism(x+0.44,y+0.1,x+0.82,y+0.42,0.26,0.1,pick(PAL.metal,h3),true);
+  if(L>1)blob(x+0.2,0,y+0.82,0.14,0.06+0.05*sg,0.13,pick(PAL.spoil,h2));
+  if(L===3){
+    box(x+0.06,y+0.48,x+0.34,y+0.64,0,0.4,pick(PAL.fact,h3),[1,0.2,0.15,i+5]);
+    cyl(x+0.12,y+0.54,0.035,0.4,1.25,K.brick); EM.push([x+0.12,1.25,y+0.54,0.7,false]); top=Math.max(top,1.25);
+  }
+  return top;
+}
+function pumpJack(px,pz,s,c){   // nodding pump: two posts, a walking beam, the horse head over the well
+  box(px-0.13*s,pz-0.045*s,px+0.15*s,pz+0.045*s,0,0.025,K.darkC);
+  box(px-0.012,pz-0.035*s,px+0.012,pz-0.02*s,0.025,0.22*s,K.steel); box(px-0.012,pz+0.02*s,px+0.012,pz+0.035*s,0.025,0.22*s,K.steel);
+  box(px-0.15*s,pz-0.014,px+0.12*s,pz+0.014,0.21*s,0.245*s,c);
+  box(px+0.11*s,pz-0.02,px+0.155*s,pz+0.02,0.13*s,0.26*s,K.yellow);
+  box(px-0.15*s,pz-0.04*s,px-0.08*s,pz+0.04*s,0.04,0.15*s,K.red);   // crank and counterweights
+  cyl(px+0.14*s,pz,0.012,0.025,0.13*s,K.dark);
+  return 0.26*s;
+}
+function tank(cx,cz,r,hh){cyl(cx,cz,r,0,hh,K.tankW);cyl(cx,cz,r*0.96,hh,hh+0.015,shade(K.tankW,0.85));box(cx+r*0.9,cz-0.01,cx+r+0.015,cz+0.01,0,hh,K.steel);}
+function drawOil(x,y,L,i,h,h2,h3){   // oil field: pump jacks, storage tanks and, on the biggest, a gas flare
+  flat(x+0.03,y+0.03,x+0.97,y+0.97,0,0.012,K.gravel);
+  const jc=h2<0.5?K.beam:K.steel;
+  if(L===1){const t=pumpJack(x+0.4,y+0.52,1.6,jc);tank(x+0.76,y+0.24,0.11,0.24);return Math.max(t,0.26);}
+  if(L===2){
+    pumpJack(x+0.3,y+0.3,1.5,jc); pumpJack(x+0.36,y+0.74,1.5,jc);
+    tank(x+0.76,y+0.3,0.13,0.3); tank(x+0.78,y+0.7,0.11,0.26);
+    pipe(x+0.52,y+0.5,x+0.78,y+0.5,0.04,0.02,K.pipe);
+    return 0.4;
+  }
+  tank(x+0.26,y+0.26,0.17,0.42); tank(x+0.66,y+0.26,0.15,0.38); tank(x+0.26,y+0.7,0.15,0.36);
+  pumpJack(x+0.66,y+0.72,1.4,jc);
+  pipe(x+0.26,y+0.48,x+0.9,y+0.48,0.05,0.022,K.pipe);
+  cyl(x+0.9,y+0.9,0.025,0,1.3,K.steel); lit(x+0.885,y+0.885,x+0.915,y+0.915,1.3,1.36,K.flame);   // gas flare
+  EM.push([x+0.9,1.36,y+0.9,0.6,false]);
+  return 1.36;
+}
+function berm(x0,z0,x1,z1,w,y1,c){box(x0,z0,x1,z0+w,0,y1,c);box(x0,z1-w,x1,z1,0,y1,c);box(x0,z0+w,x0+w,z1-w,0,y1,c);box(x1-w,z0+w,x1,z1-w,0,y1,c);}
+function drawCoal(x,y,L,i,h,h2,h3){   // open pit with stepped benches, a conveyor and a coal heap
+  const sg=resStage[i]||1;
+  flat(x+0.03,y+0.03,x+0.97,y+0.97,0,0.012,K.pit);
+  berm(x+0.05,y+0.05,x+0.65,y+0.65,0.07,0.09,pick(PAL.spoil,h));   // spoil bank round the pit
+  berm(x+0.12,y+0.12,x+0.58,y+0.58,0.06,0.05,shade(K.pit,1.15));   // benches
+  flat(x+0.18,y+0.18,x+0.52,y+0.52,0,0.016,K.coal);
+  cone(x+0.82,y+0.82,0.1+0.025*sg,0,0.12+0.05*sg,K.coal);
+  for(let k=0;k<4;k++){const a=x+0.34+k*0.1, yy=0.08+k*0.05;   // conveyor climbing out of the pit to the heap
+    box(a,y+0.79,a+0.1,y+0.83,yy,yy+0.025,K.conveyor); box(a+0.04,y+0.8,a+0.06,y+0.82,0,yy,K.steel);}
+  if(L===1)return 0.36;
+  box(x+0.72,y+0.12,x+0.92,y+0.4,0,0.5,pick(PAL.metal,h3));   // loading tower
+  box(x+0.58,y+0.24,x+0.72,y+0.28,0.44,0.47,K.conveyor);
+  EM.push([x+0.82,0.5,y+0.26,0.5,false]);
+  if(L===2)return 0.5;
+  box(x+0.06,y+0.7,x+0.3,y+0.94,0,0.55,pick(PAL.fact,h2),[1,0.27,0.13,i]);   // washing plant
+  cyl(x+0.12,y+0.76,0.04,0.55,1.4,K.brick); EM.push([x+0.12,1.4,y+0.76,0.9,false]);
+  return 1.4;
+}
+const SPEC_DRAW=[null,drawFarm,drawForestry,drawMine,drawOil,drawCoal];
+function drawPlant(x,y,i){
+  box(x+0.03,y+0.03,x+0.97,y+0.97,0,0.04,K.concrete);
+  coolTower(x+0.36,y+0.38,0.32,0.04,1.55,K.cool);
+  cyl(x+0.36,y+0.38,0.24,1.44,1.46,K.dark);
+  box(x+0.6,y+0.5,x+0.95,y+0.95,0.04,0.5,pick(PAL.fact,hash(i)),[2,0.24,0.35,i]);
+  box(x+0.6,y+0.5,x+0.95,y+0.95,0.42,0.46,K.yellow);
+  cyl(x+0.85,y+0.15,0.045,0,1.35,K.white); cyl(x+0.85,y+0.15,0.05,1.1,1.2,K.red); cyl(x+0.85,y+0.15,0.05,1.27,1.35,K.red);
+  EM.push([x+0.36,1.55,y+0.38,1.7,true]);
+  return 1.6;
+}
+function riverSide(x,y){return [[0,-1],[-1,0],[1,0],[0,1]].find(([dx,dy])=>{const X=x+dx,Y=y+dy;return X>=0&&Y>=0&&X<W&&Y<H&&terrain[Y*W+X];})||[0,-1];}
+function drawPump(x,y,i){
+  const d=riverSide(x,y), cx=x+0.5, cz=y+0.5;
+  box(x+0.04,y+0.04,x+0.96,y+0.96,0,0.03,K.concrete);
+  pipe(cx,cz,cx+d[0]*0.95,cz+d[1]*0.95,0.06,0.035,K.pipe);
+  const tx=x+0.7, tz=y+0.28, zt=0.55;
+  for(const [lx,lz] of [[-1,-1],[1,-1],[-1,1],[1,1]])box(tx+lx*0.12-0.02,tz+lz*0.12-0.02,tx+lx*0.12+0.02,tz+lz*0.12+0.02,0.03,zt,K.concrete);
+  cyl(tx,tz,0.16,zt,zt+0.26,K.pump); cone(tx,tz,0.17,zt+0.26,zt+0.34,shade(K.pump,0.8));
+  box(x+0.12,y+0.52,x+0.5,y+0.88,0.03,0.3,K.pumpHouse,[1,0.27,0.18,i]);
+  box(x+0.12,y+0.52,x+0.5,y+0.88,0.24,0.28,K.pump);
+  return zt+0.34;
+}
+function drawOutlet(x,y,i){
+  const d=riverSide(x,y), cx=x+0.5, cz=y+0.5;
+  box(x+0.08,y+0.08,x+0.92,y+0.92,0,0.03,K.concrete);
+  box(x+0.28,y+0.28,x+0.72,y+0.72,0.03,0.24,K.darkC);
+  cyl(x+0.62,y+0.38,0.04,0.24,0.38,K.pipe);
+  pipe(cx,cz,cx+d[0]*1.05,cz+d[1]*1.05,-0.02,0.075,K.pipe);
+  flat(cx+d[0]*1.15-0.32,cz+d[1]*1.15-0.32,cx+d[0]*1.15+0.32,cz+d[1]*1.15+0.32,-0.1,-0.094,K.sludge);
+  return 0.38;
+}
+function drawTreat(x,y,i){
+  const d=riverSide(x,y), cx=x+0.5, cz=y+0.5;
+  box(x+0.03,y+0.03,x+0.97,y+0.97,0,0.03,K.concrete);
+  for(const [a,b] of [[0.28,0.3],[0.7,0.32]]){cyl(x+a,y+b,0.2,0.03,0.15,K.concrete);cyl(x+a,y+b,0.17,0.15,0.155,K.treatWater);}
+  box(x+0.12,y+0.6,x+0.58,y+0.92,0.03,0.38,pick(PAL.office,hash(i)),[1,0.35,0.15,i]);
+  pipe(cx,cz,cx+d[0]*0.95,cz+d[1]*0.95,-0.02,0.05,K.pipe);
+  return 0.4;
+}
+function drawDump(x,y,i){
+  const f=clamp(fill[i]/DUMP_STORE,0,1), h=hash(i);
+  const t=0.02,a=0.04,b=0.96,hh=0.14;
+  box(x+a,y+a,x+b,y+a+t,0,hh,K.fence);box(x+a,y+a,x+a+t,y+b,0,hh,K.fence);box(x+b-t,y+a,x+b,y+b,0,hh,K.fence);box(x+a,y+b-t,x+0.55,y+b,0,hh,K.fence);
+  blob(x+0.42,0,y+0.45,0.32,0.06+0.42*f,0.3,pick(PAL.trashMound,h));
+  if(f>0.3)blob(x+0.7,0,y+0.66,0.2,0.04+0.28*f,0.2,pick(PAL.trashMound,h*3%1));
+  box(x+0.7,y+0.1,x+0.9,y+0.28,0,0.2,pick(PAL.shed,h),[1,0.2,0.12,i]);
+  box(x+0.16,y+0.76,x+0.3,y+0.86,0,0.08,K.yellow);
+  return 0.2+0.42*f;
+}
+function drawIncin(x,y,i){
+  box(x+0.06,y+0.3,x+0.72,y+0.92,0,0.52,pick(PAL.fact,hash(i)),[1,0.26,0.2,i]);
+  box(x+0.06,y+0.06,x+0.46,y+0.26,0,0.18,K.darkC);
+  cyl(x+0.84,y+0.2,0.075,0,2.1,K.concrete); cyl(x+0.84,y+0.2,0.08,1.85,1.95,K.red);
+  EM.push([x+0.84,2.1,y+0.2,1.2,false]);
+  return 2.1;
+}
+function drawPark(x,y,h,h2,h3){
+  cyl(x+0.7,y+0.7,0.16,0,0.012,K.water);
+  tree(x+0.25,y+0.25,1.1,h); tree(x+0.72,y+0.24,0.9,h2); tree(x+0.26,y+0.74,1.0,h3);
+  box(x+0.44,y+0.46,x+0.56,y+0.5,0,0.04,K.bench);
+  return 0.6;
+}
+function drawRoad(x,y,i){
+  const isR=(X,Y)=>X>=0&&Y>=0&&X<W&&Y<H&&type[Y*W+X]===T.ROAD;
+  const n=isR(x,y-1),s=isR(x,y+1),w=isR(x-1,y),e=isR(x+1,y), arms=n+s+w+e;
+  if(terrain[i]){   // bridge deck, piers and railings
+    box(x,y,x+1,y+1,-0.14,0,K.concrete);
+    if((x+y)%2===0)cyl(x+0.5,y+0.5,0.09,-0.36,-0.14,K.concrete);
+    if(n||s){box(x+0.02,y,x+0.05,y+1,0.03,0.11,K.concrete);box(x+0.95,y,x+0.98,y+1,0.03,0.11,K.concrete);}
+    else{box(x,y+0.02,x+1,y+0.05,0.03,0.11,K.concrete);box(x,y+0.95,x+1,y+0.98,0.03,0.11,K.concrete);}
+  }
+  flat(x,y,x+1,y+1,0,0.03,K.walk);
+  const a=0.15,b=0.85;
+  flat(x+a,y+a,x+b,y+b,0,0.04,K.asphalt);
+  if(n)flat(x+a,y,x+b,y+a,0,0.04,K.asphalt); if(s)flat(x+a,y+b,x+b,y+1,0,0.04,K.asphalt);
+  if(w)flat(x,y+a,x+a,y+b,0,0.04,K.asphalt); if(e)flat(x+b,y+a,x+1,y+b,0,0.04,K.asphalt);
+  if(arms<=2){const t=0.018;
+    if(n)flat(x+0.5-t,y+0.04,x+0.5+t,y+0.3,0.04,0.042,K.mark); if(s)flat(x+0.5-t,y+0.7,x+0.5+t,y+0.96,0.04,0.042,K.mark);
+    if(w)flat(x+0.04,y+0.5-t,x+0.3,y+0.5+t,0.04,0.042,K.mark); if(e)flat(x+0.7,y+0.5-t,x+0.96,y+0.5+t,0.04,0.042,K.mark);}
+  else{   // zebra crossings on each arm of a junction
+    const zb=(x0,z0,x1,z1,alongX)=>{for(let k=0;k<4;k++){const f=0.2+k*0.16;
+      if(alongX)flat(x0+(x1-x0)*f,z0,x0+(x1-x0)*(f+0.08),z1,0.04,0.042,K.mark);else flat(x0,z0+(z1-z0)*f,x1,z0+(z1-z0)*(f+0.08),0.04,0.042,K.mark);}};
+    if(n)zb(x+a,y+0.02,x+b,y+0.13,true); if(s)zb(x+a,y+0.87,x+b,y+0.98,true);
+    if(w)zb(x+0.02,y+a,x+0.13,y+b,false); if(e)zb(x+0.87,y+a,x+0.98,y+b,false);}
+  if(hash(i+99)<0.3&&!terrain[i]){   // street lamp
+    box(x+0.06,y+0.06,x+0.085,y+0.085,0.03,0.5,K.dark);
+    lit(x+0.05,y+0.05,x+0.12,y+0.1,0.48,0.51,K.lamp);
+    glow(x+0.12,y+0.12,0.55,K.lamp);
+  }
+  return 0.1;
+}
+
+/* ---- chunks: the map is drawn in 16x16 tile blocks, each rebuilt only when something in it changes ---- */
+const CH=16, NC=W/CH, tops=new Float32Array(N);
+const chunks=[];
+for(let cy=0;cy<NC;cy++)for(let cx=0;cx<NC;cx++){
+  const c={x0:cx*CH,y0:cy*CH,group:new THREE.Group(),dirty:true,emit:[],sphere:new THREE.Sphere(new THREE.Vector3(cx*CH+CH/2,3,cy*CH+CH/2),Math.hypot(CH/2,CH/2,8))};
+  scene.add(c.group); chunks.push(c);
+}
+let groundAll=true; const groundTiles=new Set();
+function markTile(i){const x=i%W,y=(i/W)|0;
+  for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const X=x+dx,Y=y+dy;if(X<0||Y<0||X>=W||Y>=H)continue;
+    chunks[((Y/CH)|0)*NC+((X/CH)|0)].dirty=true; groundTiles.add(Y*W+X);}}
+function markAll(){for(const c of chunks)c.dirty=true;groundAll=true;markersDirty=true;overlayDirty=true;}
+function buildMeshes(parts,group,sphere){
+  for(const m of [...group.children]){group.remove(m);m.geometry.dispose();if(m.dispose)m.dispose();}
+  for(const k in parts){const p=parts[k],n=p.c.length/3;if(!n)continue;
+    const spec=KINDS[k], geo=G[spec.g].clone();
+    if(spec.win)geo.setAttribute('aWin',new THREE.InstancedBufferAttribute(new Float32Array(p.w),4));
+    geo.boundingSphere=sphere.clone();   // r149 culls instanced meshes by the geometry's sphere
+    const mesh=new THREE.InstancedMesh(geo,spec.m,n);
+    mesh.instanceMatrix.array.set(p.m);
+    mesh.instanceColor=new THREE.InstancedBufferAttribute(new Float32Array(p.c),3);
+    mesh.castShadow=spec.cast!==false; mesh.receiveShadow=spec.recv!==false;
+    group.add(mesh);
+  }
+}
+function buildChunk(c){
+  PB=newParts(); EM=[];
+  for(let y=c.y0;y<c.y0+CH;y++)for(let x=c.x0;x<c.x0+CH;x++){
+    const i=y*W+x,t=type[i],L=lvl[i],h=hash(i),h2=hash(i+7777),h3=hash(i+31337);
+    let top=0;
+    if(t===T.GROUND){   // scattered trees, denser in the forest groves (thinner where they have been cut)
+      const forest=res[i]===RS.FOREST, f=forest?resStage[i]/4:0;
+      if(h>(forest?1-0.55*f:0.92))top=tree(x+0.3+h2*0.4,y+0.3+h3*0.4,0.8+h2*0.5,h3);
+      if(forest&&h2>1-0.45*f&&fbm(x*0.09+40,y*0.09+11)>0.62)tree(x+0.75,y+0.78,0.75,h);
+    }
+    else if(t===T.ROAD)top=drawRoad(x,y,i);
+    else if(t===T.R)top=drawRes(x,y,L,i,h,h2,h3);
+    else if(t===T.C)top=drawCom(x,y,L,i,h,h2,h3);
+    else if(t===T.I){const s=L?specOf(i):0;top=s?SPEC_DRAW[s](x,y,L,i,h,h2,h3):drawInd(x,y,L,i,h,h2,h3);}
+    else if(t===T.POWER)top=drawPlant(x,y,i);
+    else if(t===T.PUMP)top=drawPump(x,y,i);
+    else if(t===T.OUTLET)top=drawOutlet(x,y,i);
+    else if(t===T.TREAT)top=drawTreat(x,y,i);
+    else if(t===T.DUMP)top=drawDump(x,y,i);
+    else if(t===T.INCIN)top=drawIncin(x,y,i);
+    else if(t===T.PARK)top=drawPark(x,y,h,h2,h3);
+    tops[i]=top;
+  }
+  buildMeshes(PB,c.group,c.sphere); c.emit=EM; c.dirty=false; PB=null; EM=null;
+}
+
+/* ---- terrain: playable map + a ring of countryside (paddy fields, groves, low hills) around it ---- */
+const M=32, EXT=W+2*M;
+function heightAt(X,Z){
+  let w=0,n=0;
+  const xs=Number.isInteger(X)?[X-1,X]:[Math.floor(X)], zs=Number.isInteger(Z)?[Z-1,Z]:[Math.floor(Z)];
+  for(const a of xs)for(const b of zs){n++;if(riverAt(a,b))w++;}
+  let hgt=-0.34*(w/n);
+  const d=Math.max(-X,X-W,-Z,Z-H,0);
+  if(d>0){const mask=smooth(3,12,d)*(1-smooth(M-6,M,d))*smooth(2,10,Math.abs(Z-riverMid(X)-0.5));
+    hgt+=mask*(0.3+Math.max(0,fbm(X*0.05+3,Z*0.05+8)-0.35)*7);}
+  return hgt;
+}
+function gridGeom(xa,za,xb,zb,step,u0,v0,us,vs,skipMap){
+  const nx=Math.round((xb-xa)/step), nz=Math.round((zb-za)/step);
+  const pos=new Float32Array((nx+1)*(nz+1)*3), uv=new Float32Array((nx+1)*(nz+1)*2);
+  let k=0,q=0;
+  for(let j=0;j<=nz;j++)for(let i=0;i<=nx;i++){const X=xa+i*step,Z=za+j*step;
+    pos[k++]=X;pos[k++]=heightAt(X,Z);pos[k++]=Z;uv[q++]=(X-u0)/us;uv[q++]=1-(Z-v0)/vs;}
+  const idx=[];
+  for(let j=0;j<nz;j++)for(let i=0;i<nx;i++){
+    const X=xa+(i+0.5)*step,Z=za+(j+0.5)*step; if(skipMap&&X>0&&X<W&&Z>0&&Z<H)continue;
+    const a=j*(nx+1)+i,b=a+1,c=a+nx+1,d=c+1; idx.push(a,c,b,b,c,d);}
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.BufferAttribute(pos,3)); g.setAttribute('uv',new THREE.BufferAttribute(uv,2));
+  g.setIndex(new THREE.BufferAttribute(new Uint32Array(idx),1)); g.computeVertexNormals(); return g;
+}
+const css=c=>`rgb(${c[0]|0},${c[1]|0},${c[2]|0})`;
+const lerp3=(a,b,t)=>[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t];
+const GRASS_A=[118,150,78], GRASS_B=[146,170,92], BED=[86,92,64], SAND=[196,184,146];
+
+// playable ground texture, 12px per tile, repainted tile by tile
+const GT=12, gCanvas=document.createElement('canvas'); gCanvas.width=gCanvas.height=W*GT;
+const gctx=gCanvas.getContext('2d');
+const groundTex=new THREE.CanvasTexture(gCanvas); groundTex.encoding=THREE.sRGBEncoding; groundTex.anisotropy=MAXANISO;
+const ZONE_RGB={3:'227,189,59',4:'209,80,75',5:'138,108,181'};
+const SPEC_GROUND=['','rgb(112,90,60)','rgb(150,134,104)','rgb(160,150,132)','rgb(176,166,140)','rgb(84,80,74)'];
+const RES_RGB=['','214,180,40','34,120,52','196,92,44','92,52,140','40,40,44'];
+function paintTile(x,y){
+  const g=gctx,px=x*GT,py=y*GT,i=y*W+x,t=type[i],L=lvl[i],h=hash(i);
+  if(terrain[i]){g.fillStyle=css(lerp3(BED,[70,80,60],h));g.fillRect(px,py,GT,GT);return;}
+  g.fillStyle=css(lerp3(GRASS_A,GRASS_B,fbm(x*0.12,y*0.12)));g.fillRect(px,py,GT,GT);
+  for(let k=0;k<5;k++){const a=hash(i*7+k),b=hash(i*13+k);g.fillStyle=a>0.5?'rgba(255,255,220,.10)':'rgba(30,50,20,.12)';g.fillRect(px+((a*GT)|0),py+((b*GT)|0),2,2);}
+  for(const [dx,dy] of [[0,-1],[0,1],[-1,0],[1,0]]){const X=x+dx,Y=y+dy;if(X<0||Y<0||X>=W||Y>=H||!terrain[Y*W+X])continue;
+    g.fillStyle=css(SAND);if(dx)g.fillRect(dx<0?px:px+GT-4,py,4,GT);else g.fillRect(px,dy<0?py:py+GT-4,GT,4);}
+  if(t===T.ROAD){g.fillStyle='rgb(176,170,156)';g.fillRect(px,py,GT,GT);return;}
+  const r=res[i];   // a hint of what lies under bare land: richer soil, rust-red or black pebbles, an oily stain
+  if(r&&(t===T.GROUND||(isZone(t)&&!L))){
+    if(r===RS.FARM){g.fillStyle='rgba(120,150,40,.22)';g.fillRect(px,py,GT,GT);g.fillStyle='rgba(80,95,30,.16)';g.fillRect(px,py+3,GT,1);g.fillRect(px,py+8,GT,1);}
+    else if(r>=RS.ORE){const n=resStage[i]?4-resStage[i]+1:0;
+      g.fillStyle=r===RS.ORE?'rgba(165,80,45,.6)':r===RS.COAL?'rgba(35,33,32,.6)':'rgba(30,26,40,.3)';
+      if(r===RS.OIL){if(n)g.fillRect(px+((h*5)|0)+2,py+((hash(i+5)*5)|0)+2,5,3);}
+      else for(let k=0;k<n;k++)g.fillRect(px+((hash(i*3+k)*10)|0),py+((hash(i*5+k)*10)|0),2,2);}
+  }
+  if(isZone(t)){
+    const z=ZONE_RGB[t], s=t===T.I&&L?specOf(i):0;
+    if(!L){g.fillStyle=`rgba(${z},.28)`;g.fillRect(px,py,GT,GT);g.strokeStyle=`rgba(${z},.95)`;g.lineWidth=1.2;g.setLineDash([3,2]);g.strokeRect(px+1.5,py+1.5,GT-3,GT-3);g.setLineDash([]);}
+    else if(t===T.R){g.fillStyle='rgba(170,200,120,.55)';g.fillRect(px+1,py+1,GT-2,GT-2);g.fillStyle='rgb(200,190,165)';g.fillRect(px+GT*0.42,py+GT*0.75,GT*0.16,GT*0.25);}
+    else if(t===T.C){g.fillStyle='rgb(196,190,176)';g.fillRect(px,py,GT,GT);}
+    else if(s){g.fillStyle=SPEC_GROUND[s];g.fillRect(px,py,GT,GT);}
+    else{g.fillStyle='rgb(150,148,140)';g.fillRect(px,py,GT,GT);g.fillStyle='rgba(40,40,40,.18)';g.fillRect(px+((h*8)|0),py+4,3,3);}
+  }else if(t===T.PARK){g.fillStyle='rgb(104,160,70)';g.fillRect(px,py,GT,GT);g.fillStyle='rgb(206,192,150)';g.fillRect(px+GT*0.45,py,GT*0.1,GT);g.fillRect(px,py+GT*0.45,GT,GT*0.1);}
+  else if(t===T.DUMP){g.fillStyle='rgb(128,112,84)';g.fillRect(px,py,GT,GT);}
+  else if(t!==T.GROUND){g.fillStyle='rgb(184,180,170)';g.fillRect(px,py,GT,GT);}
+}
+const ground=new THREE.Mesh(gridGeom(0,0,W,H,0.5,0,0,W,H,false),new THREE.MeshStandardMaterial({map:groundTex,roughness:0.95}));
+ground.receiveShadow=true; scene.add(ground);
+
+// countryside ring: painted once at 4px per tile
+const outer=(()=>{
+  const PX=4,c=document.createElement('canvas');c.width=c.height=EXT*PX;const g=c.getContext('2d');
+  const FIELDS=[[122,160,70],[150,175,80],[178,170,92],[110,145,62],[160,150,84]];
+  for(let ty=0;ty<EXT;ty++)for(let tx=0;tx<EXT;tx++){const x=tx-M,y=ty-M;
+    if(x>=0&&x<W&&y>=0&&y<H)continue;
+    if(riverAt(x,y)){g.fillStyle=css(BED);g.fillRect(tx*PX,ty*PX,PX,PX);continue;}
+    const f=FIELDS[Math.floor(hash2(Math.floor(x/6),Math.floor(y/4))*FIELDS.length)];   // paddy field patchwork
+    const hill=heightAt(x+0.5,y+0.5);
+    g.fillStyle=css(hill>0.6?lerp3([96,128,62],[120,140,80],fbm(x*0.2,y*0.2)):f);g.fillRect(tx*PX,ty*PX,PX,PX);
+    const ex=((x%6)+6)%6===0, ey=((y%4)+4)%4===0;
+    if(hill<=0.6&&(ex||ey)){g.fillStyle='rgba(225,215,170,.45)';g.fillRect(tx*PX,ty*PX,ex?1:PX,ey?1:PX);}
+  }
+  const tex=new THREE.CanvasTexture(c);tex.encoding=THREE.sRGBEncoding;tex.anisotropy=MAXANISO;
+  const mesh=new THREE.Mesh(gridGeom(-M,-M,W+M,H+M,0.5,-M,-M,EXT,EXT,true),new THREE.MeshStandardMaterial({map:tex,roughness:1}));
+  mesh.receiveShadow=true; return mesh;
+})();
+scene.add(outer);
+const farGround=new THREE.Mesh(new THREE.PlaneGeometry(4000,4000).rotateX(-Math.PI/2),new THREE.MeshStandardMaterial({color:0x7d9a58,roughness:1}));
+farGround.position.set(W/2,-0.38,H/2);   // below the river bed, so it never covers the river scene.add(farGround);
+// countryside trees and village huts (static)
+(()=>{
+  const grp=new THREE.Group(); scene.add(grp); lowPoly=true;
+  for(let by=-M;by<H+M;by+=16)for(let bx=-M;bx<W+M;bx+=16){
+    if(bx>=0&&bx<W&&by>=0&&by<H)continue;
+    PB=newParts();EM=[];
+    for(let y=by;y<by+16;y++)for(let x=bx;x<bx+16;x++){
+      if(riverAt(x,y)||riverAt(x,y-1)||riverAt(x,y+1))continue;
+      const h=hash2(x+500,y+900),h2=hash2(x*3+1,y*5+2),grove=fbm(x*0.08,y*0.08),hy=heightAt(x+0.5,y+0.5);
+      if(hy>0.6||grove>0.56){if(h>0.35)tree(x+0.3+h2*0.4,y+0.3+hash2(x,y+7)*0.4,0.9+h2*0.6,h2,hy-0.02);}
+      else if(h>0.985){const c=pick(PAL.house,h2);box(x+0.25,y+0.3,x+0.75,y+0.7,0,0.3,c,[1,FL,0.17,x*7+y]);prism(x+0.22,y+0.27,x+0.78,y+0.73,0.3,0.2,pick(PAL.roof,h2*5%1),true);tree(x+0.85,y+0.85,0.9,h);}
+      else if(h>0.95)tree(x+0.5,y+0.5,0.9,h2);
+    }
+    const g=new THREE.Group();buildMeshes(PB,g,new THREE.Sphere(new THREE.Vector3(bx+8,2,by+8),14));grp.add(g);PB=null;EM=null;
+  }
+  lowPoly=false;
+})();
+
+// water: one big translucent sheet; the land hides it except over the sunken river bed
+const waterNormal=(()=>{const S2=256,c=document.createElement('canvas');c.width=c.height=S2;const g=c.getContext('2d'),img=g.createImageData(S2,S2);
+  const ht=(x,y)=>{let v=0;for(const [a,b,p,m] of [[1,2,0.3,1],[3,-1,1.7,0.6],[-2,5,2.9,0.35],[7,3,0.8,0.2],[-5,-8,4.1,0.15]])v+=Math.sin(2*Math.PI*(a*x+b*y)/S2+p)*m;return v;};
+  for(let y=0;y<S2;y++)for(let x=0;x<S2;x++){const dx=ht(x+1,y)-ht(x-1,y),dy=ht(x,y+1)-ht(x,y-1);const l=Math.hypot(dx,dy,4);const k=(y*S2+x)*4;
+    img.data[k]=(-dx/l*0.5+0.5)*255;img.data[k+1]=(-dy/l*0.5+0.5)*255;img.data[k+2]=(4/l*0.5+0.5)*255;img.data[k+3]=255;}
+  g.putImageData(img,0,0);const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(EXT/4,EXT/4);return t;})();
+const water=new THREE.Mesh(new THREE.PlaneGeometry(EXT,EXT).rotateX(-Math.PI/2),
+  new THREE.MeshStandardMaterial({color:0x3f7d97,roughness:0.12,metalness:0.1,transparent:true,opacity:0.86,normalMap:waterNormal,normalScale:new THREE.Vector2(0.4,0.4)}));
+water.position.set(W/2,-0.1,H/2); water.receiveShadow=true; scene.add(water);
+
+// sky dome
+const skyMat=new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,fog:false,
+  uniforms:{top:{value:C3(0x5d95d6)},hor:{value:C3(0xcfe2ef)},sunDir:{value:new THREE.Vector3(0,1,0)},sunCol:{value:C3(0xffffff)}},
+  vertexShader:'varying vec3 vDir;void main(){vDir=normalize(position);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+  fragmentShader:'uniform vec3 top,hor,sunCol,sunDir;varying vec3 vDir;void main(){vec3 d=normalize(vDir);float h=max(d.y,0.0);vec3 c=mix(hor,top,pow(h,0.5));float s=max(dot(d,sunDir),0.0);c+=sunCol*(pow(s,600.0)*1.5+pow(s,10.0)*0.2);gl_FragColor=linearToOutputTexel(vec4(c,1.0));}'});
+const sky=new THREE.Mesh(new THREE.SphereGeometry(1000,32,16),skyMat); sky.frustumCulled=false; scene.add(sky);
+
+// lights
+const hemi=new THREE.HemisphereLight(0xcfe3ff,0x5d6b45,0.5); scene.add(hemi);
+const sun=new THREE.DirectionalLight(0xfff1dc,1.45); sun.castShadow=true;
+sun.shadow.mapSize.set(2048,2048); sun.shadow.bias=-0.0005; sun.shadow.normalBias=0.03;
+scene.add(sun); scene.add(sun.target);
+scene.fog=new THREE.Fog(0xcfe2ef,100,400);
+const sunDir=new THREE.Vector3();
+const TOD={
+  day:  {dir:[0.5,0.72,0.36],sun:0xfff1dc,si:1.45,sky:0xcfe3ff,gnd:0x5d6b45,hi:0.5,top:0x4f8fd6,hor:0xd4e5ef,night:0,exp:0.9,lamp:0.25},
+  dusk: {dir:[0.92,0.2,0.32],sun:0xff9c5a,si:1.4,sky:0xf2b08a,gnd:0x3d3a40,hi:0.38,top:0x34477e,hor:0xf3a36f,night:0.55,exp:1.0,lamp:1.0},
+  night:{dir:[-0.35,0.65,-0.5],sun:0x9fb4ff,si:0.25,sky:0x34466e,gnd:0x101418,hi:0.32,top:0x050a18,hor:0x1a2440,night:1,exp:1.15,lamp:1.6},
+};
+
+/* ---- overlays: data layers and plot ownership, painted onto a sheet just above the ground ---- */
+const OV=8, ovCanvas=document.createElement('canvas'); ovCanvas.width=ovCanvas.height=W*OV;
+const octx=ovCanvas.getContext('2d');
+const ovTex=new THREE.CanvasTexture(ovCanvas); ovTex.encoding=THREE.sRGBEncoding; ovTex.anisotropy=MAXANISO;
+const ovMesh=new THREE.Mesh(new THREE.PlaneGeometry(W,H).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({map:ovTex,transparent:true,depthWrite:false,toneMapped:false}));
+ovMesh.position.set(W/2,0.07,H/2); ovMesh.renderOrder=2; scene.add(ovMesh);
+let hoverPlot=-1;
+function drawOverlay(){
+  const g=octx, o=st.overlay; g.clearRect(0,0,ovCanvas.width,ovCanvas.height);
+  const good='rgba(47,170,90,', bad='rgba(230,90,40,', blue='rgba(60,150,220,', brown='rgba(150,105,60,';
+  if(o!=='none'&&o!=='plots')for(let i=0;i<N;i++){
+    const x=i%W,y=(i/W)|0,t=type[i];let f=null;
+    if(o==='power'){if(t<2||(t===T.ROAD&&!powered[i]))continue;f=powered[i]?good+'.6)':bad+'.7)';}
+    else if(o==='water'||o==='sewer'){const arr=o==='water'?watered:sewered;
+      if(t===T.ROAD){if(!arr[i])continue;f=(o==='water'?blue:brown)+'.75)';}
+      else if(isZone(t)||(o==='water'?t===T.PUMP:(t===T.OUTLET||t===T.TREAT)))f=arr[i]?good+'.6)':bad+'.7)';else continue;}
+    else if(o==='trash'){if(!isZone(t)){if(t===T.DUMP||t===T.INCIN)f=blue+'.8)';else continue;}
+      else f=trash[i]>TRASH_BAD?bad+'.8)':covered[i]?good+(0.35+Math.min(0.4,trash[i]/60)).toFixed(2)+')':'rgba(230,180,40,.6)';}
+    else if(o==='poll'){if(poll[i]<0.03)continue;f=bad+(poll[i]*0.85).toFixed(2)+')';}
+    else if(o==='lv')f=`rgba(44,140,110,${(lv[i]*0.85).toFixed(2)})`;
+    else if(o==='res'){const r=res[i];if(!r||t===T.WATER)continue;   // stronger colour = more left; outlined = being worked
+      f=r>=RS.ORE&&resAmt[i]<=0?'rgba(150,150,150,.45)':`rgba(${RES_RGB[r]},${(0.3+0.5*(r===RS.FARM?1:resAmt[i]/resMax[i])).toFixed(2)})`;
+      g.fillStyle=f;g.fillRect(x*OV,y*OV,OV,OV);
+      if(lvl[i]&&specOf(i)){g.strokeStyle='rgba(255,255,255,.9)';g.lineWidth=1.5;g.strokeRect(x*OV+1,y*OV+1,OV-2,OV-2);}
+      continue;}
+    g.fillStyle=f;g.fillRect(x*OV,y*OV,OV,OV);
+  }
+  // plots: locked land is dimmed; while buying, the buyable neighbours are outlined with their price
+  const k=nOwned(), buying=st.tool==='buy'||o==='plots';
+  for(let p=0;p<PW*PW;p++){const px=(p%PW)*PLOT*OV,py=((p/PW)|0)*PLOT*OV,S2=PLOT*OV;
+    if(!owned[p]){g.fillStyle=buying&&plotBuyable(p)?'rgba(20,30,25,.22)':'rgba(20,25,30,.38)';g.fillRect(px,py,S2,S2);}
+    g.strokeStyle=owned[p]?'rgba(255,255,255,.45)':'rgba(255,255,255,.25)';g.lineWidth=2;g.setLineDash(owned[p]?[]:[10,8]);g.strokeRect(px+1,py+1,S2-2,S2-2);g.setLineDash([]);
+    if(buying&&k<9&&plotBuyable(p)){
+      const ok=S.pop>=PLOT_POP[k]&&st.funds>=PLOT_PRICE[k];
+      g.strokeStyle=p===hoverPlot?'#fff':ok?'rgba(120,230,170,.95)':'rgba(255,200,120,.9)';g.lineWidth=p===hoverPlot?6:4;g.strokeRect(px+4,py+4,S2-8,S2-8);
+      g.fillStyle='rgba(255,255,255,.95)';g.font='600 30px "Hind Siliguri","Nirmala UI",sans-serif';g.textAlign='center';g.textBaseline='middle';
+      g.fillText(taka(PLOT_PRICE[k]),px+S2/2,py+S2/2-18);
+      g.font='500 20px "Hind Siliguri","Nirmala UI",sans-serif';g.fillText(ok?'কেনা যাবে':`জনসংখ্যা ${fmt(PLOT_POP[k])} লাগবে`,px+S2/2,py+S2/2+18);
+    }
+  }
+  ovTex.needsUpdate=true;
+}
+
+/* ---- warning icons over buildings: one Points draw call with a 4-icon atlas ---- */
+const ICON=(()=>{const c=document.createElement('canvas');c.width=256;c.height=64;const g=c.getContext('2d');
+  const disc=(k,col)=>{g.fillStyle=col;g.beginPath();g.arc(k*64+32,32,26,0,7);g.fill();g.lineWidth=3;g.strokeStyle='rgba(255,255,255,.9)';g.stroke();g.fillStyle='#fff';};
+  disc(0,'#d9531e');g.beginPath();const s=2.4,cx=32,cy=32;g.moveTo(cx+1*s,cy-7*s);g.lineTo(cx-4*s,cy+1*s);g.lineTo(cx,cy+1*s);g.lineTo(cx-1*s,cy+7*s);g.lineTo(cx+4*s,cy-1*s);g.lineTo(cx,cy-1*s);g.closePath();g.fill();
+  disc(1,'#2f7fb8');g.beginPath();g.moveTo(96,14);g.arc(96,38,12,-0.52,3.66);g.closePath();g.fill();
+  disc(2,'#8a6a45');g.lineWidth=4;g.strokeStyle='#fff';for(const yy of [24,34,44]){g.beginPath();g.moveTo(144,yy);g.bezierCurveTo(152,yy-6,160,yy+6,168,yy);g.stroke();}
+  disc(3,'#6f7d3a');g.fillRect(212,26,24,24);g.fillRect(218,18,12,8);
+  return new THREE.CanvasTexture(c);})();
+const markGeo=new THREE.BufferGeometry();
+const markPos=new THREE.BufferAttribute(new Float32Array(N*3),3).setUsage(THREE.DynamicDrawUsage);
+const markKind=new THREE.BufferAttribute(new Float32Array(N),1).setUsage(THREE.DynamicDrawUsage);
+markGeo.setAttribute('position',markPos); markGeo.setAttribute('kind',markKind); markGeo.setDrawRange(0,0);
+const markMat=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,
+  uniforms:{map:{value:ICON},uTime:U.time,uSize:{value:26}},
+  vertexShader:'attribute float kind;varying float vKind;uniform float uTime;uniform float uSize;void main(){vKind=kind;vec3 p=position;p.y+=sin(uTime*3.0+position.x*1.7+position.z)*0.06;gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.0);gl_PointSize=uSize;}',
+  fragmentShader:'uniform sampler2D map;varying float vKind;void main(){vec4 c=texture2D(map,vec2((gl_PointCoord.x+vKind)/4.0,1.0-gl_PointCoord.y));if(c.a<0.05)discard;gl_FragColor=c;}'});
+const markers=new THREE.Points(markGeo,markMat); markers.frustumCulled=false; markers.renderOrder=5; scene.add(markers);
+function rebuildMarkers(){
+  let n=0;const P=markPos.array,Kd=markKind.array;
+  for(let i=0;i<N;i++){const t=type[i],L=lvl[i];let k=-1;
+    if(isZone(t)&&L){if(!powered[i])k=0;else if(L>1&&!watered[i])k=1;else if(L>2&&!sewered[i])k=2;else if(trash[i]>TRASH_BAD)k=3;}
+    else if(POWER_USE[t]&&!powered[i])k=0;
+    else if(t===T.DUMP&&fill[i]>=DUMP_STORE)k=3;
+    if(k<0)continue;P[n*3]=i%W+0.5;P[n*3+1]=tops[i]+0.35;P[n*3+2]=((i/W)|0)+0.5;Kd[n]=k;n++;}
+  markPos.needsUpdate=markKind.needsUpdate=true; markGeo.setDrawRange(0,n); markersDirty=false;
+}
+
+/* ---- cars and garbage trucks (they keep to the left, as in Bangladesh) ---- */
+const MAXC=700;
+const matCar=new THREE.MeshStandardMaterial({roughness:0.45,metalness:0.15});
+const carBody=new THREE.InstancedMesh(G.box,matCar,MAXC), carTop=new THREE.InstancedMesh(G.box,matCar,MAXC), carLightMesh=new THREE.InstancedMesh(G.box,matEmit,MAXC*2);
+for(const m of [carBody,carTop,carLightMesh]){m.frustumCulled=false;m.count=0;m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);scene.add(m);}
+carBody.castShadow=true;
+carBody.instanceColor=new THREE.InstancedBufferAttribute(new Float32Array(MAXC*3),3);
+carTop.instanceColor=new THREE.InstancedBufferAttribute(new Float32Array(MAXC*3),3);
+carLightMesh.instanceColor=new THREE.InstancedBufferAttribute(new Float32Array(MAXC*6).fill(1),3);
+let cars=[];
+const roadNb=i=>nb(i).filter(j=>type[j]===T.ROAD);
+function spawnCar(truck){if(!roadTiles.length)return;const a=roadTiles[(Math.random()*roadTiles.length)|0];const n=roadNb(a);
+  cars.push({a,b:n.length?n[(Math.random()*n.length)|0]:a,t:Math.random(),c:(Math.random()*PAL.car.length)|0,truck});}
+function updateCars(dt){
+  const nT=reduce?0:Math.min(60,facs.filter(f=>f.rate).length*3), nC=reduce?0:Math.min(MAXC-nT,Math.floor(S.pop/30+(S.cj+S.ij)/60));
+  const have=cars.filter(c=>c.truck).length, haveC=cars.length-have;
+  if(have<nT)spawnCar(true); else if(have>nT)cars.splice(cars.findIndex(c=>c.truck),1);
+  if(haveC<nC)spawnCar(false); else if(haveC>nC)cars.splice(cars.findIndex(c=>!c.truck),1);
+  const sp=[0,0.9,1.7,2.8][st.speed]*dt;
+  for(const c of cars){
+    if(type[c.a]!==T.ROAD||type[c.b]!==T.ROAD){c.a=-1;continue;}
+    c.t+=sp*(c.truck?0.7:1); if(c.t>=1){c.t-=1;const n=roadNb(c.b);const fw=n.filter(j=>j!==c.a);const ch=fw.length?fw:n;c.a=c.b;c.b=ch.length?ch[(Math.random()*ch.length)|0]:c.b;}
+  }
+  cars=cars.filter(c=>c.a>=0);
+  let k=0,l=0;const A=carBody.instanceMatrix.array,B=carTop.instanceMatrix.array,Lm=carLightMesh.instanceMatrix.array;
+  const cA=carBody.instanceColor.array,cB=carTop.instanceColor.array;
+  for(const c of cars){
+    const ax=c.a%W,ay=(c.a/W)|0,dx=c.b%W-ax,dz=((c.b/W)|0)-ay;
+    const lx=dz,lz=-dx;   // left of the direction of travel
+    const X=ax+dx*c.t+0.5+lx*0.17, Z=ay+dz*c.t+0.5+lz*0.17, rot=Math.atan2(-dz,dx);
+    const len=c.truck?0.3:0.22, col=c.truck?K.truck:PAL.car[c.c];
+    A.set(mY(X,0.04,Z,len,c.truck?0.1:0.06,0.11,rot),k*16);
+    B.set(c.truck?mY(X-dx*0.04,0.14,Z-dz*0.04,0.2,0.06,0.11,rot):mY(X-dx*0.01,0.1,Z-dz*0.01,0.12,0.045,0.095,rot),k*16);
+    const tc=c.truck?K.truckBox:shade(col,0.75);
+    cA[k*3]=col.r;cA[k*3+1]=col.g;cA[k*3+2]=col.b; cB[k*3]=tc.r;cB[k*3+1]=tc.g;cB[k*3+2]=tc.b;
+    if(carLightMesh.visible)for(const s of [-1,1]){Lm.set(mY(X+dx*len*0.5+lx*s*0.035,0.06,Z+dz*len*0.5+lz*s*0.035,0.025,0.02,0.025,rot),l*16);l++;}
+    k++;
+  }
+  carBody.count=carTop.count=k; carLightMesh.count=l;
+  carBody.instanceMatrix.needsUpdate=carTop.instanceMatrix.needsUpdate=carLightMesh.instanceMatrix.needsUpdate=true;
+  carBody.instanceColor.needsUpdate=carTop.instanceColor.needsUpdate=true;
+}
+
+/* ---- smoke and steam puffs ---- */
+const MAXP=900;
+const smokeMat=new THREE.MeshStandardMaterial({color:0x8a8780,roughness:1,transparent:true,opacity:0.42,depthWrite:false});
+const steamMat=new THREE.MeshStandardMaterial({color:0xf4f4f2,roughness:1,transparent:true,opacity:0.5,depthWrite:false});
+const smokeMesh=new THREE.InstancedMesh(G.leafLo,smokeMat,MAXP), steamMesh=new THREE.InstancedMesh(G.leafLo,steamMat,MAXP);
+for(const m of [smokeMesh,steamMesh]){m.frustumCulled=false;m.count=0;m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);scene.add(m);}
+let simTime=0;
+function updateSmoke(){
+  let a=0,b=0;const SA=smokeMesh.instanceMatrix.array,SB=steamMesh.instanceMatrix.array;
+  for(const c of chunks)for(const [x,y,z,s,steam] of c.emit){
+    for(let k=0;k<5;k++){
+      const ph=((simTime*0.25*(steam?0.7:1))+k/5+hash((x*97+z*13)|0)*0.5)%1, r=(0.06+ph*0.2)*s*(ph>0.8?(1-ph)*5:1);
+      const m=mY(x+ph*0.6,y+ph*1.1*s,z-ph*0.3,r,r,r);
+      if(steam){if(b<MAXP){SB.set(m,b*16);b++;}}else if(a<MAXP){SA.set(m,a*16);a++;}
+    }
+  }
+  smokeMesh.count=a;steamMesh.count=b;smokeMesh.instanceMatrix.needsUpdate=steamMesh.instanceMatrix.needsUpdate=true;
+}
+
+function setTod(t){
+  st.tod=t;const p=TOD[t];
+  sunDir.set(...p.dir).normalize(); sun.color.set(p.sun); sun.intensity=p.si;
+  hemi.color.set(p.sky); hemi.groundColor.set(p.gnd); hemi.intensity=p.hi;
+  skyMat.uniforms.top.value.set(p.top); skyMat.uniforms.hor.value.set(p.hor); skyMat.uniforms.sunDir.value.copy(sunDir);
+  skyMat.uniforms.sunCol.value.set(t==='night'?0x8090c0:p.sun);
+  scene.fog.color.set(p.hor); farGround.material.color.set(t==='night'?0x1d2a1c:t==='dusk'?0x5d6a40:0x7d9a58);
+  U.night.value=p.night; renderer.toneMappingExposure=p.exp;
+  matEmit.color.setScalar(p.lamp); matGlow.opacity=p.night*0.55; carLightMesh.visible=p.night>0.3;
+  document.querySelectorAll('#tod button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.t===t));
+}
+function setQuality(q){
+  st.quality=q; const hi=q==='high';
+  renderer.shadowMap.enabled=hi; sun.castShadow=hi;
+  for(const m of [matBuild,matGlass,matPlain,matLeaf,matFlat,matCar,ground.material,outer.material,water.material])m.needsUpdate=true;
+  resize();
+  document.querySelectorAll('#quality button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.q===q));
+  try{localStorage.setItem(KEY+'-q',q);}catch(e){}
+}
+
+/* ---- hover brush ---- */
+const brush=new THREE.Mesh(new THREE.PlaneGeometry(1,1).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0x2c6a58,transparent:true,opacity:0.35,depthWrite:false,toneMapped:false}));
+brush.renderOrder=3; brush.visible=false; scene.add(brush);
+const brushEdge=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.PlaneGeometry(1,1).rotateX(-Math.PI/2)),new THREE.LineBasicMaterial({color:0xffffff,toneMapped:false}));
+brushEdge.renderOrder=4; brush.add(brushEdge);
+
+/* ================= CAMERA: orbit around a point on the ground ================= */
+const PMIN=0.16, PMAX=1.52, DMIN=4, DMAX=230;
+const cam={tx:W/2,tz:H/2,dist:60,yaw:Math.PI/4,pitch:0.85}, camT={...cam};
+let cw=0,ch=0;
+function applyCam(c){
+  const cp=Math.cos(c.pitch),sp=Math.sin(c.pitch);
+  camera.position.set(c.tx+c.dist*cp*Math.sin(c.yaw),c.dist*sp,c.tz+c.dist*cp*Math.cos(c.yaw));
+  camera.lookAt(c.tx,0,c.tz); camera.updateMatrixWorld();
+}
+function stepCam(dt){
+  const k=1-Math.pow(0.0008,dt);
+  for(const p of ['tx','tz','dist','pitch','yaw'])cam[p]+=(camT[p]-cam[p])*k;
+  applyCam(cam);
+  // the sun follows the view so the shadow map always covers what we are looking at
+  const S2=clamp(cam.dist*0.8,14,110);
+  sun.position.set(cam.tx+sunDir.x*120,sunDir.y*120,cam.tz+sunDir.z*120); sun.target.position.set(cam.tx,0,cam.tz); sun.target.updateMatrixWorld();
+  const sc=sun.shadow.camera; if(Math.abs(sc.right-S2)>0.5){sc.left=-S2;sc.right=S2;sc.top=S2;sc.bottom=-S2;sc.near=1;sc.far=320;sc.updateProjectionMatrix();}
+  scene.fog.near=cam.dist*1.3+30; scene.fog.far=cam.dist*4+260;
+  sky.position.copy(camera.position);
+}
+const snap=()=>Object.assign(cam,camT);
+const clampT=()=>{camT.tx=clamp(camT.tx,-12,W+12);camT.tz=clamp(camT.tz,-12,H+12);camT.dist=clamp(camT.dist,DMIN,DMAX);camT.pitch=clamp(camT.pitch,PMIN,PMAX);};
+function fitCam(now){
+  let x0=W,y0=H,x1=0,y1=0;for(let p=0;p<9;p++)if(owned[p]){const px=(p%PW)*PLOT,py=((p/PW)|0)*PLOT;x0=Math.min(x0,px);y0=Math.min(y0,py);x1=Math.max(x1,px+PLOT);y1=Math.max(y1,py+PLOT);}
+  camT.tx=(x0+x1)/2;camT.tz=(y0+y1)/2;camT.dist=Math.max(x1-x0,y1-y0)*1.25+8;camT.pitch=0.85;
+  if(now)snap();
+}
+const ray=new THREE.Raycaster(), ndc=new THREE.Vector2();
+function groundAt(mx,my){
+  ndc.set(mx/cw*2-1,-(my/ch)*2+1); ray.setFromCamera(ndc,camera);
+  const o=ray.ray.origin,d=ray.ray.direction; if(d.y>-1e-4)return null;
+  const t=-o.y/d.y; return [o.x+d.x*t,o.z+d.z*t];
+}
+function zoomAt(f,mx,my){
+  const g=groundAt(mx,my), nd=clamp(camT.dist*f,DMIN,DMAX), k=1-nd/camT.dist;
+  camT.dist=nd; if(g){camT.tx+=(g[0]-camT.tx)*k;camT.tz+=(g[1]-camT.tz)*k;} clampT();
+}
+$('zIn').addEventListener('click',()=>zoomAt(1/1.35,cw/2,ch/2));
+$('zOut').addEventListener('click',()=>zoomAt(1.35,cw/2,ch/2));
+$('rotL').addEventListener('click',()=>{camT.yaw-=Math.PI/4;});
+$('rotR').addEventListener('click',()=>{camT.yaw+=Math.PI/4;});
+$('tilt').addEventListener('click',()=>{camT.pitch=camT.pitch>1.3?0.85:PMAX;});
+$('zFit').addEventListener('click',()=>fitCam(false));
+
+function resize(){
+  const w=board.clientWidth; if(!w)return;
+  cw=w; ch=Math.round(clamp(Math.min(w*0.68,innerHeight*0.78),340,900));
+  cv.style.height=ch+'px';
+  renderer.setPixelRatio(st.quality==='high'?Math.min(devicePixelRatio||1,2):1);
+  renderer.setSize(cw,ch,false); camera.aspect=cw/ch; camera.updateProjectionMatrix();
+  markMat.uniforms.uSize.value=26*renderer.getPixelRatio();
+}
+new ResizeObserver(resize).observe(board);
+
+/* ---- pointer: paint (left), orbit (middle / Alt+left), pan (right / pan tool), pinch & twist on touch ---- */
+let hover=-1, mode=null, last=null, drag=null;
+const pts=new Map();
+const local=e=>{const r=cv.getBoundingClientRect();return [e.clientX-r.left,e.clientY-r.top];};
+const tileAt=(mx,my)=>{const g=groundAt(mx,my);return g?[Math.floor(g[0]),Math.floor(g[1])]:[-1,-1];};
+function line(x0,y0,x1,y1){const dx=Math.abs(x1-x0),dy=-Math.abs(y1-y0),sx=x0<x1?1:-1,sy=y0<y1?1:-1;let err=dx+dy;
+  for(let guard=0;guard<300;guard++){place(x0,y0);if(x0===x1&&y0===y1)break;const e2=2*err;if(e2>=dy){err+=dy;x0+=sx;}if(e2<=dx){err+=dx;y0+=sy;}}}
+cv.addEventListener('contextmenu',e=>e.preventDefault());
+cv.addEventListener('mousedown',e=>{if(e.button===1)e.preventDefault();});   // no browser autoscroll on middle-drag
+cv.addEventListener('auxclick',e=>e.preventDefault());
+cv.addEventListener('pointerdown',e=>{
+  try{cv.setPointerCapture(e.pointerId);}catch(_){}
+  const [mx,my]=local(e); pts.set(e.pointerId,[mx,my]);
+  if(pts.size===2){const [a,b]=[...pts.values()];
+    mode='touch2';drag={d:Math.hypot(a[0]-b[0],a[1]-b[1])||1,ang:Math.atan2(b[1]-a[1],b[0]-a[0]),my:(a[1]+b[1])/2,dist:camT.dist,yaw:camT.yaw,pitch:camT.pitch};return;}
+  if(e.button===1||(e.button===0&&e.altKey)){e.preventDefault();mode='orbit';drag={x:mx,y:my,yaw:camT.yaw,pitch:camT.pitch};return;}
+  if(e.button===2||st.tool==='pan'){mode='pan';drag={g:groundAt(mx,my)};return;}
+  if(e.button!==0)return;
+  const [x,y]=tileAt(mx,my);
+  if(st.tool==='buy'){if(x>=0&&y>=0&&x<W&&y<H)buyPlot(plotOf(y*W+x));return;}
+  mode='paint'; last=[x,y]; place(x,y); commit();
+});
+cv.addEventListener('pointermove',e=>{
+  const [mx,my]=local(e); if(pts.has(e.pointerId))pts.set(e.pointerId,[mx,my]);
+  if(mode==='touch2'&&pts.size>=2){const [a,b]=[...pts.values()];
+    const d=Math.hypot(a[0]-b[0],a[1]-b[1])||1, ang=Math.atan2(b[1]-a[1],b[0]-a[0]), midY=(a[1]+b[1])/2;
+    camT.dist=clamp(drag.dist*drag.d/d,DMIN,DMAX); camT.yaw=drag.yaw-(ang-drag.ang); camT.pitch=clamp(drag.pitch+(midY-drag.my)*0.004,PMIN,PMAX); snap(); applyCam(cam); return;}
+  if(mode==='orbit'){camT.yaw=drag.yaw-(mx-drag.x)*0.006;camT.pitch=clamp(drag.pitch+(my-drag.y)*0.005,PMIN,PMAX);snap();applyCam(cam);return;}
+  if(mode==='pan'){const g=groundAt(mx,my);
+    if(drag.g&&g){camT.tx+=drag.g[0]-g[0];camT.tz+=drag.g[1]-g[1];clampT();snap();applyCam(cam);}   // keep the grabbed spot under the cursor
+    return;}
+  const [x,y]=tileAt(mx,my);
+  if(x>=0&&y>=0&&x<W&&y<H){hover=y*W+x;describe(hover);}else hover=-1;
+  if(mode==='paint'&&last&&(x!==last[0]||y!==last[1])&&x>=0){line(last[0],last[1],x,y);last=[x,y];commit();}
+});
+const stop=e=>{pts.delete(e.pointerId);if(!pts.size){mode=null;last=null;drag=null;}else if(mode==='touch2')mode='hold';};
+cv.addEventListener('pointerup',stop);cv.addEventListener('pointercancel',stop);
+cv.addEventListener('pointerleave',()=>{hover=-1;});
+cv.addEventListener('wheel',e=>{e.preventDefault();const [mx,my]=local(e);zoomAt(e.deltaY<0?1/1.15:1.15,mx,my);},{passive:false});
+const keys=new Set();
+document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT')return;
+  const map={'1':'road','2':'R','3':'C','4':'I','5':'power','6':'pump','7':'outlet','8':'dump','9':'park','0':'bulldoze','b':'buy','B':'buy'};
+  if(map[e.key])setTool(map[e.key]);
+  if(e.key===' '){e.preventDefault();setSpeed(st.speed?0:1);}
+  if(e.key==='+'||e.key==='=')zoomAt(1/1.25,cw/2,ch/2);
+  if(e.key==='-')zoomAt(1.25,cw/2,ch/2);
+  const k=e.key.toLowerCase();
+  if(['w','a','s','d','q','e','r','f','arrowup','arrowdown','arrowleft','arrowright'].includes(k)){if(k.startsWith('arrow'))e.preventDefault();keys.add(k);}
+});
+document.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));
+addEventListener('blur',()=>keys.clear());
+function keyMove(dt){
+  if(!keys.size)return;
+  const sp=camT.dist*0.9*dt, fx=-Math.sin(camT.yaw), fz=-Math.cos(camT.yaw), rx=Math.cos(camT.yaw), rz=-Math.sin(camT.yaw);
+  const has=(...a)=>a.some(k=>keys.has(k));
+  if(has('w','arrowup')){camT.tx+=fx*sp;camT.tz+=fz*sp;} if(has('s','arrowdown')){camT.tx-=fx*sp;camT.tz-=fz*sp;}
+  if(has('d','arrowright')){camT.tx+=rx*sp;camT.tz+=rz*sp;} if(has('a','arrowleft')){camT.tx-=rx*sp;camT.tz-=rz*sp;}
+  if(has('q'))camT.yaw-=1.6*dt; if(has('e'))camT.yaw+=1.6*dt;
+  if(has('r'))camT.pitch+=0.9*dt; if(has('f'))camT.pitch-=0.9*dt;
+  clampT();
+}
+function describe(i){
+  const t=type[i],s=specOf(i),r=res[i],parts=[s?SPEC_NAME[s]:NAMES[t]];
+  if(!owned[plotOf(i)])parts.push('কেনা হয়নি এমন এলাকা');
+  if(r&&t!==T.WATER){   // what lies here and how much of it is left
+    if(r===RS.FARM)parts.push('উর্বর জমি (ফুরায় না)');
+    else if(r===RS.FOREST)parts.push(`বন: গাছ ${bn(Math.round(resAmt[i]))}%`);
+    else if(resAmt[i]<=0)parts.push(`${RES_NAME[r]}: মজুদ ফুরিয়ে গেছে`);
+    else{let m=`${RES_NAME[r]}: বাকি ${fmt(resAmt[i])} টন (${bn(Math.round(resAmt[i]/resMax[i]*100))}%)`;
+      if(s&&lvl[i])m+=`, আর প্রায় ${bn(Math.ceil(resAmt[i]/(SPEC_USE[s]*lvl[i])))} মাস চলবে`;
+      parts.push(m);}
+    if(st.tool==='I'&&t===T.GROUND&&(r<RS.ORE||resAmt[i]>0))parts.push(`শিল্প জোন করলে এখানে ${SPEC_NAME[r]} হবে`);
+  }
+  if(isZone(t)){parts.push(lvl[i]?`স্তর ${bn(lvl[i])}`:'অবিকশিত');
+    const cap=(s?SPEC_CAP[s]:CAP[t])[lvl[i]]; if(cap)parts.push(t===3?`${bn(cap)} জন`:`${bn(cap)} চাকরি`);
+    if(s&&lvl[i])parts.push(`উৎপাদন ${bn(Math.round(specYield(i)*100))}%`);
+    parts.push(powered[i]?'বিদ্যুৎ আছে':'বিদ্যুৎ নেই', watered[i]?'পানি আছে':'পানি নেই', sewered[i]?'পয়ঃ আছে':'পয়ঃ নেই');
+    if(!roadNear[i])parts.push('রাস্তা নেই');
+    if(trash[i]>TRASH_BAD)parts.push('ময়লা জমেছে');else if(lvl[i]&&!covered[i])parts.push('ময়লার গাড়ি আসে না');}
+  else if(t===T.PUMP)parts.push(powered[i]?`${fmt(pumpOut(i))} পানি তুলছে`:'বিদ্যুৎ নেই, বন্ধ');
+  else if(t===T.TREAT)parts.push(powered[i]?`ক্ষমতা ${fmt(TREAT_CAP)}`:'বিদ্যুৎ নেই, বন্ধ');
+  else if(t===T.OUTLET)parts.push(`ক্ষমতা ${fmt(OUTLET_CAP)}, নদী দূষিত করে`);
+  else if(t===T.DUMP)parts.push(`${bn(Math.round(fill[i]/DUMP_STORE*100))}% ভরেছে`);
+  else if(t===T.INCIN)parts.push(powered[i]?`মাসে ${fmt(INCIN_RATE)} পোড়ায়`:'বিদ্যুৎ নেই, বন্ধ');
+  parts.push(`দূষণ ${bn(Math.round(poll[i]*100))}%`, `জমির মান ${bn(Math.round(lv[i]*100))}%`);
+  const c=canPlace(i,st.tool); if(c>=0)parts.push(`খরচ ${taka(c)}`);
+  else if(ON_BANK.has(TOOL_T[st.tool])&&t===T.GROUND&&owned[plotOf(i)])parts.push('এটা শুধু নদীর পাড়ে বসে');
+  $('hover').textContent=parts.join(' · ');
+}
+function updateBrush(){
+  if(hover<0||st.tool==='pan'){brush.visible=false;if(hoverPlot!==-1){hoverPlot=-1;overlayDirty=true;}return;}
+  const x=hover%W,y=(hover/W)|0;
+  if(st.tool==='buy'){const p=plotOf(hover);if(p!==hoverPlot){hoverPlot=p;overlayDirty=true;}
+    brush.visible=true;brush.scale.set(PLOT,1,PLOT);brush.position.set((p%PW)*PLOT+PLOT/2,0.08,((p/PW)|0)*PLOT+PLOT/2);
+    brush.material.color.set(plotBuyable(p)?0x2c6a58:0xc2410c);brush.material.opacity=0.12;return;}
+  brush.visible=true;brush.scale.set(1,1,1);brush.position.set(x+0.5,0.09,y+0.5);brush.material.opacity=0.38;
+  brush.material.color.set(canPlace(hover,st.tool)>=0?0x2c6a58:0xc2410c);
+}
+
+/* ---- main loop ---- */
+let lastT=performance.now(),acc=0;
+function frame(now){
+  const dt=Math.min(0.1,(now-lastT)/1000);lastT=now;
+  if(st.speed>0){acc+=dt*1000;simTime+=dt*(reduce?0:1);if(acc>=[0,1500,750,350][st.speed]){acc=0;tick();}}
+  U.time.value=now/1000;
+  keyMove(dt); stepCam(dt);
+  let built=0; for(const c of chunks)if(c.dirty&&built<6){buildChunk(c);built++;}
+  if(groundAll){for(let y=0;y<H;y++)for(let x=0;x<W;x++)paintTile(x,y);groundAll=false;groundTiles.clear();groundTex.needsUpdate=true;}
+  else if(groundTiles.size){for(const i of groundTiles)paintTile(i%W,(i/W)|0);groundTiles.clear();groundTex.needsUpdate=true;}
+  if(overlayDirty){drawOverlay();overlayDirty=false;}
+  if(markersDirty&&!built)rebuildMarkers();
+  waterNormal.offset.x-=dt*0.012; waterNormal.offset.y+=dt*0.002;
+  updateCars(dt); updateSmoke(); updateBrush();
+  if(cw)renderer.render(scene,camera);
+  drawRCI();
+  requestAnimationFrame(frame);
+}
+
+/* ---- start ---- */
+let q0='high';try{q0=localStorage.getItem(KEY+'-q')||'high';}catch(e){}
+setTool('road'); setSpeed(1); setOverlay('none');
+setTod('day');
+resize(); setQuality(q0);
+if(!load())seedSample();
+snap(); applyCam(cam);
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
