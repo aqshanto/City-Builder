@@ -330,6 +330,45 @@
         color: var(--warn);
         font-weight: 600;
       }
+      .why {
+        font-size: 0.88rem;
+        color: var(--warn);
+        font-weight: 500;
+        line-height: 1.45;
+      }
+      .why:empty {
+        display: none;
+      }
+      .toasts {
+        position: absolute;
+        left: 10px;
+        top: 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        max-width: min(380px, 72%);
+        pointer-events: none;
+      }
+      .toast {
+        background: color-mix(in srgb, var(--panel) 94%, transparent);
+        color: var(--ink);
+        border: 1px solid var(--line);
+        border-left: 4px solid var(--warn);
+        border-radius: 6px;
+        padding: 7px 10px;
+        font-size: 0.84rem;
+        line-height: 1.4;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+        transition: opacity 0.5s;
+      }
+      .toast.ok {
+        border-left-color: var(--good);
+      }
+      .rulenote {
+        font-size: 0.8rem;
+        color: var(--muted);
+        line-height: 1.4;
+      }
 
       .side {
         display: flex;
@@ -750,6 +789,7 @@
               </button>
             </div>
             <div class="glerr" id="glerr"></div>
+            <div class="toasts" id="toasts" aria-live="polite"></div>
           </div>
           <div class="status">
             <span id="hover"
@@ -757,6 +797,7 @@
               · ডান-ক্লিক টেনে সরাও · চাকায় জুম</span
             ><span id="flash" class="flash"></span>
           </div>
+          <div class="why" id="why"></div>
         </section>
 
         <aside class="side">
@@ -766,6 +807,14 @@
               <button data-s="0">থামাও</button><button data-s="1">১×</button
               ><button data-s="2">২×</button><button data-s="3">৪×</button>
             </div>
+          </div>
+          <div class="block">
+            <h2>খেলার নিয়ম</h2>
+            <div class="seg" id="mineRule">
+              <button data-m="1">খনিজ অফুরন্ত</button
+              ><button data-m="0">খনিজ ফুরায়</button>
+            </div>
+            <div class="rulenote" id="mineNote"></div>
           </div>
           <div class="block">
             <h2>সময় ও গ্রাফিক্স</h2>
@@ -1146,6 +1195,7 @@
           tod: "day",
           quality: "high",
           fps: 30,
+          unlimited: true, // ore, oil and coal never run out (can be switched off under "খেলার নিয়ম")
         };
         const dem = { R: 0, C: 0, I: 0 },
           dShow = { R: 0, C: 0, I: 0 };
@@ -2005,7 +2055,7 @@
               resAmt[i] = Math.min(FOREST_MAX, resAmt[i] + FOREST_REGROW);
             const s = specOf(i),
               L = lvl[i];
-            if (s >= RS.FOREST && L && powered[i]) {
+            if (s >= RS.FOREST && L && powered[i] && !(st.unlimited && s >= RS.ORE)) {
               resAmt[i] = Math.max(0, resAmt[i] - SPEC_USE[s] * L);
               if (s >= RS.ORE && resAmt[i] <= 0) {
                 gone++;
@@ -2018,6 +2068,7 @@
               markTile(i);
             }
           }
+          const goneNow = gone;
           if (gone)
             depl = {
               month: st.month,
@@ -2062,6 +2113,7 @@
           }
           recompute();
           st.funds += ledger.inc + ledger.res + ledger.rail - ledger.up;
+          cityEvents(goneNow);
           for (let i = 0; i < N; i++) {
             if (lvl[i] !== before[i]) markTile(i, !lvl[i] !== !before[i]);
             else if (
@@ -2208,7 +2260,7 @@
               "crit",
               `${bn(depl.n)}টি খনির মজুদ ফুরিয়ে গেছে। ফুরানো খনি এখন সাধারণ কারখানা হিসেবে চলছে। "সম্পদ" স্তরে নতুন মজুদ খোঁজো।`,
             ]);
-          if (S.resLow)
+          if (S.resLow && !st.unlimited)
             out.push([
               "hint",
               `${bn(S.resLow)}টি খনি বা তেলক্ষেত্রের মজুদ ২০%-এর নিচে নেমেছে।`,
@@ -2283,6 +2335,110 @@
           });
         }
 
+        // put every ore, oil and coal deposit back to full (used when the "unlimited" rule is on)
+        function refillMines() {
+          for (let i = 0; i < N; i++) if (res[i] >= RS.ORE) resAmt[i] = resMax[i];
+          depl = { month: -99, n: 0 };
+        }
+        function drawMineRule() {
+          document
+            .querySelectorAll("#mineRule button")
+            .forEach((b) => b.setAttribute("aria-pressed", (b.dataset.m === "1") === st.unlimited));
+          $("mineNote").textContent = st.unlimited
+            ? "লোহা, তেল আর কয়লার খনি কখনো ফুরাবে না।"
+            : "প্রতিটা খনি প্রতি মাসে স্তর × ১০ টন তোলে। মজুদ শেষ হলে খনিটা সাধারণ কারখানা হয়ে যায়, তখন নতুন মজুদ খুঁজতে হয়।";
+        }
+        function setUnlimited(on) {
+          st.unlimited = on;
+          if (on) {
+            refillMines();
+            syncStages();
+            markAll();
+            notify("এখন থেকে খনিজ সম্পদ অফুরন্ত। ফুরিয়ে যাওয়া খনিগুলোও আবার ভরে গেছে।", "ok");
+          } else notify("খনিজ এখন ফুরায়: বড় খনি দ্রুত ফুরাবে। মজুদ দেখতে খনির ওপর মাউস রাখো।", "ok");
+          drawMineRule();
+          recompute();
+          updateUI();
+          saveSoon();
+        }
+        // plain-language reasons a lot is not growing (empty when nothing is in the way)
+        function whyStuck(i) {
+          const t = type[i],
+            L = lvl[i],
+            s = specOf(i),
+            why = [];
+          if (!isZone(t) || !owned[plotOf(i)]) return why;
+          if (!roadNear[i]) why.push("২ ঘরের মধ্যে রাস্তা নেই");
+          if (!powered[i])
+            why.push(!S.cap ? "শহরে বিদ্যুৎকেন্দ্র নেই" : S.use > S.cap ? "বিদ্যুৎ ঘাটতি চলছে" : "বিদ্যুৎ লাইন এখানে পৌঁছায়নি");
+          if (L >= 1 && !watered[i])
+            why.push(S.wuse > S.wcap ? "পানির ঘাটতি, তাই স্তর ১-এর ওপরে উঠবে না" : "পানির লাইন নেই, তাই স্তর ১-এর ওপরে উঠবে না");
+          else if (L >= 2 && !sewered[i])
+            why.push(S.suse > S.scap ? "পয়ঃনিষ্কাশনের ঘাটতি, তাই স্তর ২-এর ওপরে উঠবে না" : "পয়ঃনিষ্কাশনের লাইন নেই, তাই স্তর ২-এর ওপরে উঠবে না");
+          if (L < 3) {
+            const d = t === T.R ? dem.R : t === T.C ? dem.C : dem.I;
+            if (d <= 0)
+              why.push(
+                t === T.R
+                  ? "আবাসিক চাহিদা নেই (আরও চাকরি লাগবে, বা কর কমাও)"
+                  : t === T.C
+                    ? "বাণিজ্যিক চাহিদা নেই (আরও মানুষ লাগবে)"
+                    : "শিল্প চাহিদা নেই (আরও মানুষ লাগবে)",
+              );
+            if (t === T.R && poll[i] > 0.3) why.push("দূষণ বেশি, মানুষ এখানে থাকতে চায় না");
+            if (t !== T.I && L === 2 && watered[i] && sewered[i] && lv[i] <= 0.55)
+              why.push(`স্তর ৩-এর জন্য জমির মান ৫৫%-এর বেশি লাগে (এখন ${bn(Math.round(lv[i] * 100))}%): পার্ক বা নদী কাছে আনো`);
+          }
+          if (trash[i] > TRASH_BAD) why.push("ময়লা জমে আছে, ময়লার গাড়ি পৌঁছায় না");
+          if (s === RS.FARM && poll[i] > 0.2) why.push("দূষণে ফসল কম হচ্ছে");
+          if (s === RS.FOREST && specYield(i) < 0.6) why.push("বনে গাছ কমে গেছে, আবার গজাতে সময় লাগবে");
+          return why;
+        }
+        // short pop-up messages over the map for things that just happened
+        function notify(msg, kind) {
+          const box = $("toasts"),
+            el = document.createElement("div");
+          el.className = "toast" + (kind === "ok" ? " ok" : "");
+          el.textContent = msg;
+          box.appendChild(el);
+          while (box.children.length > 4) box.firstChild.remove();
+          setTimeout(() => {
+            el.style.opacity = "0";
+            setTimeout(() => el.remove(), 600);
+          }, 7000);
+        }
+        let evPrev = null;
+        function cityFlags() {
+          const k = nOwned();
+          return {
+            pow: S.cap > 0 && S.use > S.cap,
+            wat: S.wcap > 0 && S.wuse > S.wcap,
+            sew: S.scap > 0 && S.suse > S.scap,
+            trash: S.tcap > 0 && S.tgen > S.tcap,
+            full: S.dumpsFull,
+            broke: st.funds < 0,
+            plot: k < 9 && S.pop >= PLOT_POP[k] && st.funds >= PLOT_PRICE[k],
+          };
+        }
+        // compare this month with the last one and announce what changed
+        function cityEvents(gone) {
+          const f = cityFlags(),
+            p = evPrev;
+          evPrev = f;
+          if (gone)
+            notify(
+              `${bn(gone)}টি খনির মজুদ ফুরিয়ে গেছে, ওগুলো এখন সাধারণ কারখানা। খনি যত বড় (স্তর বেশি), তত দ্রুত ফুরায়। না চাইলে "খেলার নিয়ম"-এ খনিজ অফুরন্ত করো।`,
+            );
+          if (!p) return;
+          if (f.pow && !p.pow) notify(`বিদ্যুৎ ঘাটতি শুরু হয়েছে (চাহিদা ${fmt(S.use)}, ক্ষমতা ${fmt(S.cap)})। কিছু ভবন বিদ্যুৎ পাচ্ছে না, তারা ছোট হয়ে যাবে।`);
+          if (f.wat && !p.wat) notify(`পানির ঘাটতি শুরু হয়েছে (চাহিদা ${fmt(S.wuse)}, সরবরাহ ${fmt(S.wcap)})। আরেকটা পাম্প বসাও।`);
+          if (f.sew && !p.sew) notify(`পয়ঃনিষ্কাশনের ঘাটতি শুরু হয়েছে (চাহিদা ${fmt(S.suse)}, ক্ষমতা ${fmt(S.scap)})।`);
+          if (f.trash && !p.trash) notify(`ময়লা জমতে শুরু করেছে: মাসে ${fmt(S.tgen)} তৈরি হয়, তোলা যায় ${fmt(S.tcap)}।`);
+          if (f.full > p.full) notify("একটা ভাগাড় পুরো ভরে গেছে, ওটা আর ময়লা নেবে না। নতুন ভাগাড় বা চুল্লি বানাও।");
+          if (f.broke && !p.broke) notify("তহবিল ঋণাত্মক হয়ে গেছে! কর বাড়াও বা খরচ কমাও।");
+          if (f.plot && !p.plot) notify('নতুন এলাকা কেনা যাবে! "এলাকা কেনো" টুল দিয়ে পাশের এলাকা কেনো।', "ok");
+        }
+
         /* ---------- UI ---------- */
         function updateUI() {
           $("date").textContent =
@@ -2304,11 +2460,12 @@
             ? `${taka(ledger.res)} · ${bn(S.nSpec)}টি`
             : "—";
           const m = $("lMine");
-          m.textContent =
-            (S.mineMax
-              ? bn(Math.round((S.mineAmt / S.mineMax) * 100)) + "%"
-              : "—") + (S.resGone ? ` · ${bn(S.resGone)}টি ফুরিয়েছে` : "");
-          m.style.color = S.resGone || S.resLow ? "var(--warn)" : "";
+          m.textContent = st.unlimited
+            ? "অফুরন্ত"
+            : (S.mineMax
+                ? bn(Math.round((S.mineAmt / S.mineMax) * 100)) + "%"
+                : "—") + (S.resGone ? ` · ${bn(S.resGone)}টি ফুরিয়েছে` : "");
+          m.style.color = !st.unlimited && (S.resGone || S.resLow) ? "var(--warn)" : "";
           const pair = (id, a, b) => {
             const e = $(id);
             e.textContent = `${fmt(a)} / ${fmt(b)}`;
@@ -2393,6 +2550,9 @@
           .forEach((b) =>
             b.addEventListener("click", () => setQuality(b.dataset.q)),
           );
+        document
+          .querySelectorAll("#mineRule button")
+          .forEach((b) => b.addEventListener("click", () => setUnlimited(b.dataset.m === "1")));
         document
           .querySelectorAll("#fps button")
           .forEach((b) => b.addEventListener("click", () => setFps(+b.dataset.f)));
@@ -2684,6 +2844,7 @@
             month: st.month,
             tax: st.tax,
             pop: S.pop,
+            unlimited: st.unlimited,
             savedAt: Date.now(),
           };
         }
@@ -2736,6 +2897,9 @@
             st.funds = d.funds;
             st.month = d.month;
             st.tax = d.tax;
+            st.unlimited = d.unlimited !== false;
+            if (st.unlimited) refillMines();
+            drawMineRule();
             refreshAll();
             fitCam(true);
             return true;
@@ -5977,6 +6141,7 @@
         cv.addEventListener("pointercancel", stop);
         cv.addEventListener("pointerleave", () => {
           hover = -1;
+          $("why").textContent = "";
           redraw = true;
         });
         cv.addEventListener(
@@ -6085,6 +6250,7 @@
             if (r === RS.FARM) parts.push("উর্বর জমি (ফুরায় না)");
             else if (r === RS.FOREST)
               parts.push(`বন: গাছ ${bn(Math.round(resAmt[i]))}%`);
+            else if (st.unlimited) parts.push(`${RES_NAME[r]}: মজুদ অফুরন্ত`);
             else if (resAmt[i] <= 0)
               parts.push(`${RES_NAME[r]}: মজুদ ফুরিয়ে গেছে`);
             else {
@@ -6159,6 +6325,8 @@
           )
             parts.push("স্টেশন বসে সোজা রেললাইনের ওপর, পাশে রাস্তা লাগে");
           $("hover").textContent = parts.join(" · ");
+          const why = whyStuck(i);
+          $("why").textContent = why.length ? "⚠ কেন বাড়ছে না: " + why.join(" · ") : "";
         }
         function updateBrush() {
           if (hover < 0 || st.tool === "pan") {
@@ -6291,6 +6459,7 @@
         setQuality(q0);
         if (!load()) seedSample();
         drawSlots();
+        drawMineRule();
         snap();
         applyCam(cam);
         requestAnimationFrame(frame);
