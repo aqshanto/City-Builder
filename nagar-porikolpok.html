@@ -728,6 +728,10 @@
               <button data-q="high">ছায়াসহ</button
               ><button data-q="low">হালকা</button>
             </div>
+            <div class="seg" id="fps">
+              <button data-f="30">৩০ fps</button
+              ><button data-f="60">৬০ fps</button>
+            </div>
           </div>
           <div class="block">
             <h2>কর হার</h2>
@@ -1051,6 +1055,7 @@
           tool: "road",
           tod: "day",
           quality: "high",
+          fps: 30,
         };
         const dem = { R: 0, C: 0, I: 0 },
           dShow = { R: 0, C: 0, I: 0 };
@@ -1819,7 +1824,7 @@
           recompute();
           st.funds += ledger.inc + ledger.res - ledger.up;
           for (let i = 0; i < N; i++) {
-            if (lvl[i] !== before[i]) markTile(i);
+            if (lvl[i] !== before[i]) markTile(i, !lvl[i] !== !before[i]);
             else if (
               type[i] === T.DUMP &&
               Math.floor(fill[i] / 4000) !== Math.floor(fillBefore[i] / 4000)
@@ -1827,7 +1832,7 @@
               markTile(i);
           }
           markersDirty = true;
-          overlayDirty = true;
+          if (st.overlay !== "none" || st.tool === "buy") overlayDirty = true;
           updateUI();
           save();
         }
@@ -2066,11 +2071,15 @@
               ? `<b>৯ / ৯</b> এলাকা। পুরো মানচিত্র তোমার!`
               : `<b>${bn(k)} / ৯</b> এলাকা কেনা হয়েছে।<br>পরের এলাকার জন্য জনসংখ্যা লাগবে <b>${fmt(PLOT_POP[k])}</b> (এখন ${fmt(S.pop)}), দাম <b>${taka(PLOT_PRICE[k])}</b>।`;
         }
+        const RCI_KEYS = ["R", "C", "I"],
+          rciShown = { R: 9, C: 9, I: 9 };
         function drawRCI() {
-          for (const k of ["R", "C", "I"]) {
+          for (const k of RCI_KEYS) {
             dShow[k] += (dem[k] - dShow[k]) * 0.08;
             const v = clamp(dShow[k], -1, 1),
               el = $("d" + k);
+            if (Math.abs(v - rciShown[k]) < 0.003) continue;
+            rciShown[k] = v;
             el.style.height = Math.abs(v) * 50 + "%";
             el.style.bottom = v >= 0 ? "50%" : 50 - Math.abs(v) * 50 + "%";
           }
@@ -2126,6 +2135,9 @@
           .forEach((b) =>
             b.addEventListener("click", () => setQuality(b.dataset.q)),
           );
+        document
+          .querySelectorAll("#fps button")
+          .forEach((b) => b.addEventListener("click", () => setFps(+b.dataset.f)));
         $("tax").addEventListener("input", (e) => {
           st.tax = +e.target.value;
           computeStats();
@@ -2338,6 +2350,7 @@
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.shadowMap.autoUpdate = false;
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(36, 1, 0.2, 1400);
         const U = { night: { value: 0 }, time: { value: 0 } };
@@ -2539,6 +2552,7 @@
           box: new THREE.BoxGeometry(1, 1, 1).translate(0, 0.5, 0),
           prism: prismGeom(),
           cyl: new THREE.CylinderGeometry(1, 1, 1, 14).translate(0, 0.5, 0),
+          trunk: new THREE.CylinderGeometry(1, 1, 1, 5, 1, true).translate(0, 0.5, 0),
           tower: new THREE.LatheGeometry(
             [
               [1, 0],
@@ -2561,6 +2575,7 @@
           glass: { g: "box", m: matGlass, win: true },
           prism: { g: "prism", m: matPlain },
           cyl: { g: "cyl", m: matPlain },
+          trunk: { g: "trunk", m: matPlain },
           tower: { g: "tower", m: matPlain },
           leaf: { g: "leaf", m: matLeaf },
           leafLo: { g: "leafLo", m: matLeaf },
@@ -2574,45 +2589,50 @@
         let PB = null,
           EM = null,
           lowPoly = false; // lowPoly: far countryside uses cheaper foliage
+        // one set of growable typed arrays, reused for every chunk build (no per-build garbage)
+        const SCRATCH = {};
+        for (const k in KINDS)
+          SCRATCH[k] = { n: 0, m: new Float32Array(1024 * 16), c: new Float32Array(1024 * 3), w: new Float32Array(1024 * 4) };
         function newParts() {
-          const o = {};
-          for (const k in KINDS) o[k] = { m: [], c: [], w: [] };
-          return o;
+          for (const k in SCRATCH) SCRATCH[k].n = 0;
+          return SCRATCH;
         }
-        function mY(cx, y0, cz, sx, sy, sz, rot) {
+        // write a scale + Y-rotation + translation matrix straight into a Float32Array
+        function setM(a, o, cx, y0, cz, sx, sy, sz, rot) {
           const c = Math.cos(rot || 0),
             s = Math.sin(rot || 0);
-          return [
-            c * sx,
-            0,
-            -s * sx,
-            0,
-            0,
-            sy,
-            0,
-            0,
-            s * sz,
-            0,
-            c * sz,
-            0,
-            cx,
-            y0,
-            cz,
-            1,
-          ];
+          a[o] = c * sx; a[o + 1] = 0; a[o + 2] = -s * sx; a[o + 3] = 0;
+          a[o + 4] = 0; a[o + 5] = sy; a[o + 6] = 0; a[o + 7] = 0;
+          a[o + 8] = s * sz; a[o + 9] = 0; a[o + 10] = c * sz; a[o + 11] = 0;
+          a[o + 12] = cx; a[o + 13] = y0; a[o + 14] = cz; a[o + 15] = 1;
+        }
+        const MTMP = new Float32Array(16); // what mY returns is only valid until its next call
+        function mY(cx, y0, cz, sx, sy, sz, rot) {
+          setM(MTMP, 0, cx, y0, cz, sx, sy, sz, rot);
+          return MTMP;
+        }
+        function grow(a) {
+          const g = (arr) => {
+            const b = new Float32Array(arr.length * 2);
+            b.set(arr);
+            return b;
+          };
+          a.m = g(a.m);
+          a.c = g(a.c);
+          a.w = g(a.w);
         }
         function add(k, m, c, w) {
           if (lowPoly && k === "leaf") k = "leafLo";
           const a = PB[k];
-          for (let j = 0; j < 16; j++) a.m.push(m[j]);
-          a.c.push(c.r, c.g, c.b);
-          if (KINDS[k].win)
-            a.w.push(
-              w ? w[0] : 0,
-              w ? w[1] : 0.3,
-              w ? w[2] : 0.2,
-              w ? w[3] : 0,
-            );
+          if ((a.n + 1) * 16 > a.m.length) grow(a);
+          a.m.set(m, a.n * 16);
+          const o = a.n * 3;
+          a.c[o] = c.r; a.c[o + 1] = c.g; a.c[o + 2] = c.b;
+          if (KINDS[k].win) {
+            const q = a.n * 4;
+            a.w[q] = w ? w[0] : 0; a.w[q + 1] = w ? w[1] : 0.3; a.w[q + 2] = w ? w[2] : 0.2; a.w[q + 3] = w ? w[3] : 0;
+          }
+          a.n++;
         }
         const box = (x0, z0, x1, z1, y0, y1, c, w) =>
           add(
@@ -2692,7 +2712,7 @@
         function tree(X, Z, s, h, y0 = 0) {
           if (h > 0.82) {
             // coconut palm
-            cyl(X, Z, 0.016 * s, y0, y0 + 0.62 * s, K.trunk);
+            add("trunk", mY(X, y0, Z, 0.016 * s, 0.62 * s, 0.016 * s), K.trunk);
             blob(
               X,
               y0 + 0.62 * s,
@@ -2704,7 +2724,7 @@
             );
             return y0 + 0.66 * s;
           }
-          cyl(X, Z, 0.028 * s, y0, y0 + 0.2 * s, K.trunk);
+          add("trunk", mY(X, y0, Z, 0.028 * s, 0.2 * s, 0.028 * s), K.trunk);
           const c = pick(PAL.tree, (h * 13) % 1);
           if (h < 0.18) {
             cone(X, Z, 0.15 * s, y0 + 0.12 * s, y0 + 0.7 * s, c);
@@ -3856,9 +3876,11 @@
             scene.add(c.group);
             chunks.push(c);
           }
-        let groundAll = true;
+        let groundAll = true,
+          shadowDirty = true, // the shadow map is only re-rendered when something it covers changed
+          redraw = true; // something on screen changed, so the next frame must be drawn
         const groundTiles = new Set();
-        function markTile(i) {
+        function markTile(i, ground = true) {
           const x = i % W,
             y = (i / W) | 0;
           for (let dy = -1; dy <= 1; dy++)
@@ -3867,7 +3889,7 @@
                 Y = y + dy;
               if (X < 0 || Y < 0 || X >= W || Y >= H) continue;
               chunks[((Y / CH) | 0) * NC + ((X / CH) | 0)].dirty = true;
-              groundTiles.add(Y * W + X);
+              if (ground) groundTiles.add(Y * W + X);
             }
         }
         function markAll() {
@@ -3876,34 +3898,50 @@
           markersDirty = true;
           overlayDirty = true;
         }
-        function buildMeshes(parts, group, sphere) {
-          for (const m of [...group.children]) {
-            group.remove(m);
-            m.geometry.dispose();
-            if (m.dispose) m.dispose();
-          }
+        // fill a group's instanced meshes from the recorded parts; meshes are kept and reused,
+        // and only replaced by a bigger one when a chunk outgrows them
+        function buildMeshes(parts, group, sphere, store = {}) {
           for (const k in parts) {
             const p = parts[k],
-              n = p.c.length / 3;
-            if (!n) continue;
-            const spec = KINDS[k],
-              geo = G[spec.g].clone();
-            if (spec.win)
-              geo.setAttribute(
-                "aWin",
-                new THREE.InstancedBufferAttribute(new Float32Array(p.w), 4),
-              );
-            geo.boundingSphere = sphere.clone(); // r149 culls instanced meshes by the geometry's sphere
-            const mesh = new THREE.InstancedMesh(geo, spec.m, n);
-            mesh.instanceMatrix.array.set(p.m);
-            mesh.instanceColor = new THREE.InstancedBufferAttribute(
-              new Float32Array(p.c),
-              3,
-            );
-            mesh.castShadow = spec.cast !== false;
-            mesh.receiveShadow = spec.recv !== false;
-            group.add(mesh);
+              n = p.n;
+            let e = store[k];
+            if (!n) {
+              if (e) e.mesh.visible = false;
+              continue;
+            }
+            if (!e || e.cap < n) {
+              if (e) {
+                group.remove(e.mesh);
+                e.mesh.geometry.dispose();
+                e.mesh.dispose();
+              }
+              const cap = Math.ceil(n * 1.3) + 8,
+                spec = KINDS[k],
+                geo = G[spec.g].clone();
+              if (spec.win)
+                geo.setAttribute("aWin", new THREE.InstancedBufferAttribute(new Float32Array(cap * 4), 4));
+              geo.boundingSphere = sphere.clone(); // r149 culls instanced meshes by the geometry's sphere
+              const mesh = new THREE.InstancedMesh(geo, spec.m, cap);
+              mesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(cap * 3), 3);
+              mesh.castShadow = spec.cast !== false;
+              mesh.receiveShadow = spec.recv !== false;
+              group.add(mesh);
+              e = store[k] = { mesh, cap };
+            }
+            const mesh = e.mesh;
+            mesh.visible = true;
+            mesh.count = n;
+            const put = (attr, src, size) => {
+              attr.array.set(src.subarray(0, n * size));
+              attr.updateRange.offset = 0;
+              attr.updateRange.count = n * size; // upload only the part in use
+              attr.needsUpdate = true;
+            };
+            put(mesh.instanceMatrix, p.m, 16);
+            put(mesh.instanceColor, p.c, 3);
+            if (KINDS[k].win) put(mesh.geometry.attributes.aWin, p.w, 4);
           }
+          return store;
         }
         function buildChunk(c) {
           PB = newParts();
@@ -3951,7 +3989,8 @@
               else if (t === T.PARK) top = drawPark(x, y, h, h2, h3);
               tops[i] = top;
             }
-          buildMeshes(PB, c.group, c.sphere);
+          c.meshes = buildMeshes(PB, c.group, c.sphere, c.meshes);
+          shadowDirty = true;
           c.emit = EM;
           c.dirty = false;
           PB = null;
@@ -4238,17 +4277,18 @@
           new THREE.PlaneGeometry(4000, 4000).rotateX(-Math.PI / 2),
           new THREE.MeshStandardMaterial({ color: 0x7d9a58, roughness: 1 }),
         );
-        farGround.position.set(W / 2, -0.38, H / 2); // below the river bed, so it never covers the river scene.add(farGround);
+        farGround.position.set(W / 2, -0.38, H / 2); // below the river bed, so it never covers the river
+        scene.add(farGround);
         // countryside trees and village huts (static)
         (() => {
           const grp = new THREE.Group();
           scene.add(grp);
           lowPoly = true;
+          PB = newParts();
+          EM = [];
           for (let by = -M; by < H + M; by += 16)
             for (let bx = -M; bx < W + M; bx += 16) {
               if (bx >= 0 && bx < W && by >= 0 && by < H) continue;
-              PB = newParts();
-              EM = [];
               for (let y = by; y < by + 16; y++)
                 for (let x = bx; x < bx + 16; x++) {
                   if (riverAt(x, y) || riverAt(x, y - 1) || riverAt(x, y + 1))
@@ -4287,16 +4327,11 @@
                     tree(x + 0.85, y + 0.85, 0.9, h);
                   } else if (h > 0.95) tree(x + 0.5, y + 0.5, 0.9, h2);
                 }
-              const g = new THREE.Group();
-              buildMeshes(
-                PB,
-                g,
-                new THREE.Sphere(new THREE.Vector3(bx + 8, 2, by + 8), 14),
-              );
-              grp.add(g);
-              PB = null;
-              EM = null;
             }
+          buildMeshes(PB, grp, new THREE.Sphere(new THREE.Vector3(W / 2, 2, H / 2), EXT * 0.75));
+          for (const m of grp.children) m.castShadow = false; // far scenery: its shadows are not worth the cost
+          PB = null;
+          EM = null;
           lowPoly = false;
         })();
 
@@ -4685,7 +4720,6 @@
           m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
           scene.add(m);
         }
-        carBody.castShadow = true;
         carBody.instanceColor = new THREE.InstancedBufferAttribute(
           new Float32Array(MAXC * 3),
           3,
@@ -4698,7 +4732,9 @@
           new Float32Array(MAXC * 6).fill(1),
           3,
         );
-        let cars = [];
+        let cars = [],
+          nTrucks = 0;
+        const CAR_TOP = PAL.car.map((c) => shade(c, 0.75));
         const roadNb = (i) => nb(i).filter((j) => type[j] === T.ROAD);
         function spawnCar(truck) {
           if (!roadTiles.length) return;
@@ -4711,31 +4747,27 @@
             c: (Math.random() * PAL.car.length) | 0,
             truck,
           });
+          if (truck) nTrucks++;
+        }
+        function removeCar(truck) {
+          const k = cars.findIndex((c) => c.truck === truck);
+          if (k < 0) return;
+          cars.splice(k, 1);
+          if (truck) nTrucks--;
         }
         function updateCars(dt) {
-          const nT = reduce
-              ? 0
-              : Math.min(60, facs.filter((f) => f.rate).length * 3),
+          let active = 0;
+          for (const f of facs) if (f.rate) active++;
+          const few = st.quality === "high" ? 1 : 0.5; // light mode: half the traffic
+          const nT = reduce ? 0 : Math.min(60, active * 3),
             nC = reduce
               ? 0
-              : Math.min(
-                  MAXC - nT,
-                  Math.floor(S.pop / 30 + (S.cj + S.ij) / 60),
-                );
-          const have = cars.filter((c) => c.truck).length,
-            haveC = cars.length - have;
-          if (have < nT) spawnCar(true);
-          else if (have > nT)
-            cars.splice(
-              cars.findIndex((c) => c.truck),
-              1,
-            );
+              : Math.min(MAXC - nT, Math.floor((S.pop / 30 + (S.cj + S.ij) / 60) * few));
+          const haveC = cars.length - nTrucks;
+          if (nTrucks < nT) spawnCar(true);
+          else if (nTrucks > nT) removeCar(true);
           if (haveC < nC) spawnCar(false);
-          else if (haveC > nC)
-            cars.splice(
-              cars.findIndex((c) => !c.truck),
-              1,
-            );
+          else if (haveC > nC) removeCar(false);
           const sp = [0, 0.9, 1.7, 2.8][st.speed] * dt;
           for (const c of cars) {
             if (type[c.a] !== T.ROAD || type[c.b] !== T.ROAD) {
@@ -4752,7 +4784,13 @@
               c.b = ch.length ? ch[(Math.random() * ch.length) | 0] : c.b;
             }
           }
-          cars = cars.filter((c) => c.a >= 0);
+          let live = 0; // drop cars whose road was bulldozed, in place
+          for (let r = 0; r < cars.length; r++) {
+            const c = cars[r];
+            if (c.a >= 0) cars[live++] = c;
+            else if (c.truck) nTrucks--;
+          }
+          cars.length = live;
           let k = 0,
             l = 0;
           const A = carBody.instanceMatrix.array,
@@ -4772,44 +4810,21 @@
               rot = Math.atan2(-dz, dx);
             const len = c.truck ? 0.3 : 0.22,
               col = c.truck ? K.truck : PAL.car[c.c];
-            A.set(mY(X, 0.04, Z, len, c.truck ? 0.1 : 0.06, 0.11, rot), k * 16);
-            B.set(
-              c.truck
-                ? mY(X - dx * 0.04, 0.14, Z - dz * 0.04, 0.2, 0.06, 0.11, rot)
-                : mY(
-                    X - dx * 0.01,
-                    0.1,
-                    Z - dz * 0.01,
-                    0.12,
-                    0.045,
-                    0.095,
-                    rot,
-                  ),
-              k * 16,
-            );
-            const tc = c.truck ? K.truckBox : shade(col, 0.75);
+            setM(A, k * 16, X, 0.04, Z, len, c.truck ? 0.1 : 0.06, 0.11, rot);
+            if (c.truck) setM(B, k * 16, X - dx * 0.04, 0.14, Z - dz * 0.04, 0.2, 0.06, 0.11, rot);
+            else setM(B, k * 16, X - dx * 0.01, 0.1, Z - dz * 0.01, 0.12, 0.045, 0.095, rot);
+            const tc = c.truck ? K.truckBox : CAR_TOP[c.c];
             cA[k * 3] = col.r;
             cA[k * 3 + 1] = col.g;
             cA[k * 3 + 2] = col.b;
             cB[k * 3] = tc.r;
             cB[k * 3 + 1] = tc.g;
             cB[k * 3 + 2] = tc.b;
-            if (carLightMesh.visible)
-              for (const s of [-1, 1]) {
-                Lm.set(
-                  mY(
-                    X + dx * len * 0.5 + lx * s * 0.035,
-                    0.06,
-                    Z + dz * len * 0.5 + lz * s * 0.035,
-                    0.025,
-                    0.02,
-                    0.025,
-                    rot,
-                  ),
-                  l * 16,
-                );
-                l++;
-              }
+            if (carLightMesh.visible) {
+              const fx = X + dx * len * 0.5, fz = Z + dz * len * 0.5;
+              setM(Lm, l++ * 16, fx - lx * 0.035, 0.06, fz - lz * 0.035, 0.025, 0.02, 0.025, rot);
+              setM(Lm, l++ * 16, fx + lx * 0.035, 0.06, fz + lz * 0.035, 0.025, 0.02, 0.025, rot);
+            }
             k++;
           }
           carBody.count = carTop.count = k;
@@ -4852,32 +4867,21 @@
             b = 0;
           const SA = smokeMesh.instanceMatrix.array,
             SB = steamMesh.instanceMatrix.array;
+          const puffs = st.quality === "high" ? 5 : 3;
           for (const c of chunks)
-            for (const [x, y, z, s, steam] of c.emit) {
-              for (let k = 0; k < 5; k++) {
+            for (let e = 0; e < c.emit.length; e++) {
+              const em = c.emit[e],
+                x = em[0], y = em[1], z = em[2], s = em[3], steam = em[4];
+              for (let k = 0; k < puffs; k++) {
                 const ph =
                     (simTime * 0.25 * (steam ? 0.7 : 1) +
                       k / 5 +
                       hash((x * 97 + z * 13) | 0) * 0.5) %
                     1,
                   r = (0.06 + ph * 0.2) * s * (ph > 0.8 ? (1 - ph) * 5 : 1);
-                const m = mY(
-                  x + ph * 0.6,
-                  y + ph * 1.1 * s,
-                  z - ph * 0.3,
-                  r,
-                  r,
-                  r,
-                );
                 if (steam) {
-                  if (b < MAXP) {
-                    SB.set(m, b * 16);
-                    b++;
-                  }
-                } else if (a < MAXP) {
-                  SA.set(m, a * 16);
-                  a++;
-                }
+                  if (b < MAXP) setM(SB, b++ * 16, x + ph * 0.6, y + ph * 1.1 * s, z - ph * 0.3, r, r, r);
+                } else if (a < MAXP) setM(SA, a++ * 16, x + ph * 0.6, y + ph * 1.1 * s, z - ph * 0.3, r, r, r);
               }
             }
           smokeMesh.count = a;
@@ -4908,6 +4912,7 @@
           matEmit.color.setScalar(p.lamp);
           matGlow.opacity = p.night * 0.55;
           carLightMesh.visible = p.night > 0.3;
+          shadowDirty = redraw = true;
           document
             .querySelectorAll("#tod button")
             .forEach((b) => b.setAttribute("aria-pressed", b.dataset.t === t));
@@ -4917,6 +4922,7 @@
           const hi = q === "high";
           renderer.shadowMap.enabled = hi;
           sun.castShadow = hi;
+          shadowDirty = redraw = true;
           for (const m of [
             matBuild,
             matGlass,
@@ -5094,6 +5100,16 @@
           camera.aspect = cw / ch;
           camera.updateProjectionMatrix();
           markMat.uniforms.uSize.value = 26 * renderer.getPixelRatio();
+          redraw = true;
+        }
+        function setFps(f) {
+          st.fps = f;
+          document
+            .querySelectorAll("#fps button")
+            .forEach((b) => b.setAttribute("aria-pressed", +b.dataset.f === f));
+          try {
+            localStorage.setItem(KEY + "-fps", f);
+          } catch (e) {}
         }
         new ResizeObserver(resize).observe(board);
 
@@ -5178,6 +5194,7 @@
           commit();
         });
         cv.addEventListener("pointermove", (e) => {
+          redraw = true; // the hover brush moves
           const [mx, my] = local(e);
           if (pts.has(e.pointerId)) pts.set(e.pointerId, [mx, my]);
           if (mode === "touch2" && pts.size >= 2) {
@@ -5242,6 +5259,7 @@
         cv.addEventListener("pointercancel", stop);
         cv.addEventListener("pointerleave", () => {
           hover = -1;
+          redraw = true;
         });
         cv.addEventListener(
           "wheel",
@@ -5446,8 +5464,13 @@
 
         /* ---- main loop ---- */
         let lastT = performance.now(),
-          acc = 0;
+          acc = 0,
+          lastDraw = 0;
+        const camSeen = { tx: 1e9, tz: 1e9, dist: 1e9, yaw: 1e9, pitch: 1e9 };
         function frame(now) {
+          requestAnimationFrame(frame);
+          if (now - lastDraw < 1000 / st.fps - 2) return; // frame cap: fewer frames, cooler laptop
+          lastDraw = now;
           const dt = Math.min(0.1, (now - lastT) / 1000);
           lastT = now;
           if (st.speed > 0) {
@@ -5461,36 +5484,57 @@
           U.time.value = now / 1000;
           keyMove(dt);
           stepCam(dt);
+          for (const p in camSeen)
+            if (Math.abs(cam[p] - camSeen[p]) > 1e-4) {
+              if (p === "tx" || p === "tz" || p === "dist") shadowDirty = true; // the shadow box follows the view
+              camSeen[p] = cam[p];
+              redraw = true;
+            }
           let built = 0;
+          const t0 = performance.now();
           for (const c of chunks)
-            if (c.dirty && built < 6) {
+            if (c.dirty) {
               buildChunk(c);
               built++;
+              if (performance.now() - t0 > 6) break; // spread big rebuilds over several frames
             }
+          if (built) redraw = true;
           if (groundAll) {
             for (let y = 0; y < H; y++)
               for (let x = 0; x < W; x++) paintTile(x, y);
             groundAll = false;
             groundTiles.clear();
-            groundTex.needsUpdate = true;
+            groundTex.needsUpdate = redraw = true;
           } else if (groundTiles.size) {
             for (const i of groundTiles) paintTile(i % W, (i / W) | 0);
             groundTiles.clear();
-            groundTex.needsUpdate = true;
+            groundTex.needsUpdate = redraw = true;
           }
           if (overlayDirty) {
             drawOverlay();
             overlayDirty = false;
+            redraw = true;
           }
-          if (markersDirty && !built) rebuildMarkers();
-          waterNormal.offset.x -= dt * 0.012;
-          waterNormal.offset.y += dt * 0.002;
-          updateCars(dt);
-          updateSmoke();
+          if (markersDirty && !built) {
+            rebuildMarkers();
+            redraw = true;
+          }
+          if (st.speed > 0 && !reduce) {
+            // traffic, smoke and the river only move while the city is running
+            waterNormal.offset.x -= dt * 0.012;
+            waterNormal.offset.y += dt * 0.002;
+            updateCars(dt);
+            updateSmoke();
+            redraw = true;
+          }
           updateBrush();
-          if (cw) renderer.render(scene, camera);
+          if (redraw && cw) {
+            renderer.shadowMap.needsUpdate = shadowDirty;
+            shadowDirty = false;
+            renderer.render(scene, camera);
+            redraw = false;
+          }
           drawRCI();
-          requestAnimationFrame(frame);
         }
 
         /* ---- start ---- */
@@ -5498,6 +5542,11 @@
         try {
           q0 = localStorage.getItem(KEY + "-q") || "high";
         } catch (e) {}
+        let f0 = 30;
+        try {
+          f0 = +localStorage.getItem(KEY + "-fps") || 30;
+        } catch (e) {}
+        setFps(f0);
         setTool("road");
         setSpeed(1);
         setOverlay("none");
