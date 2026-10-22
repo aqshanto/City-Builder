@@ -2032,7 +2032,7 @@
           Object.assign(S, {
             tgen: gen,
             tcap: facs.reduce((a, f) => a + f.rate, 0),
-            tuncov: facs.length ? unc : 0,
+            tuncov: facs.some((f) => f.rate) ? unc : 0, // only meaningful while some dump or incinerator works
             tpiled: piled,
             dumpsFull: full,
             incOff,
@@ -2121,7 +2121,8 @@
         /* railway: stations count only if their track reaches the edge of the map (the national line);
            passengers ride from every built lot within 10 tiles of a station, and factories within
            30 road tiles of a cargo station send their goods by train */
-        const railConn = new Uint8Array(N),
+        const railWest = new Uint8Array(N), // track reachable from the west end of the national line
+          railConn = new Uint8Array(N),
           pCov = new Uint8Array(N),
           fCov = new Uint8Array(N);
         function computeRail() {
@@ -2143,6 +2144,20 @@
                 railConn[j] = 1;
                 q.push(j);
               }
+          // is the national line still in one piece? (trains then only run west to east, so they never meet head-on)
+          railWest.fill(0);
+          const wq = [];
+          if (isRl(type[RAIL_Y * W])) {
+            railWest[RAIL_Y * W] = 1;
+            wq.push(RAIL_Y * W);
+          }
+          for (let h = 0; h < wq.length; h++)
+            for (const j of nb(wq[h]))
+              if (!railWest[j] && isRl(type[j])) {
+                railWest[j] = 1;
+                wq.push(j);
+              }
+          S.lineWhole = !!railWest[RAIL_Y * W + W - 1];
           let pOn = 0,
             pOff = 0,
             fOn = 0,
@@ -2821,7 +2836,7 @@
           overlayDirty = true;
           markersDirty = true;
           applyOverlayLook();
-          flowMat.opacity = ["water", "sewer", "poll"].includes(o) ? 0.85 : 0.35; // river arrows stand out on the water layers
+          flowMat.opacity = ["water", "sewer", "poll"].includes(o) ? 0.9 : 0.55; // river arrows stand out on the water layers
           $("resLegend").hidden = o !== "res";
           document
             .querySelectorAll("#overlay button")
@@ -2855,7 +2870,7 @@
           .forEach((b) => b.addEventListener("click", () => setFps(+b.dataset.f)));
         $("tax").addEventListener("input", (e) => {
           st.tax = +e.target.value;
-          computeStats();
+          recompute(); // the whole chain, so transport boosts and track upkeep stay in the books
           updateUI();
           saveSoon();
         });
@@ -3094,18 +3109,26 @@
           if (b) b.disabled = !undoStack.length;
         }
         $("btnUndo").addEventListener("click", undo);
-        let changed = false;
+        let changed = false,
+          apConfirm = null; // the airport waiting for a second bulldozer click
         function place(x, y) {
           if (x < 0 || y < 0 || x >= W || y >= H) return;
           const i = y * W + x,
             tool = st.tool,
             c = canPlace(i, tool);
           if (tool === "bulldoze" && type[i] === T.AIRPORT && owned[plotOf(i)]) {
-            const a = airportAt(i); // the whole airport goes at once
+            const a = airportAt(i); // the whole airport goes at once, but only after a second click
             if (a) {
-              removeAirport(a);
-              spend(COST.bulldoze);
-              changed = true;
+              const now = performance.now();
+              if (apConfirm && apConfirm.a === a && apConfirm.tx !== undoTx && now - apConfirm.t < 4000) {
+                apConfirm = null;
+                removeAirport(a);
+                spend(COST.bulldoze);
+                changed = true;
+              } else if (!apConfirm || apConfirm.a !== a || apConfirm.tx !== undoTx) {
+                apConfirm = { a, t: now, tx: undoTx };
+                flash("পুরো বিমানবন্দর ভাঙবে! নিশ্চিত হলে ৪ সেকেন্ডের মধ্যে আবার ক্লিক করো");
+              }
               return;
             }
           }
@@ -6156,10 +6179,16 @@
         // the national line is worked one way (west to east), so trains never meet head-on;
         // a new train waits until the one before it is well down the line
         function spawnTrain(kind) {
-          for (const tr of trains) if (tr.ay === RAIL_Y && tr.ax < -M + 12) return;
-          const x = -M,
-            dir = 1,
+          // normally every train enters from the west; if the player has cut the national line, the
+          // eastern part gets its own westbound trains, so both halves are served and nothing meets head-on
+          const ends = [];
+          if (isRl(type[RAIL_Y * W])) ends.push(1);
+          if (isRl(type[RAIL_Y * W + W - 1]) && !S.lineWhole) ends.push(-1);
+          if (!ends.length) return;
+          const dir = ends[(Math.random() * ends.length) | 0],
+            x = dir > 0 ? -M : W + M - 1,
             hist = [];
+          for (const tr of trains) if (tr.ay === RAIL_Y && Math.abs(tr.ax - x) < 12) return; // keep a gap at the entry
           for (let k = 1; k <= 10; k++) hist.push([x - dir * k, RAIL_Y]);
           trains.push({ ax: x, ay: RAIL_Y, bx: x + dir, by: RAIL_Y, t: 0, hist, kind, dwell: 0, n: kind === "p" ? 5 : 7, seed: (Math.random() * 997) | 0 });
         }
@@ -6578,7 +6607,7 @@
         })();
         const FLOW_GAP = 7,
           FLOW_N = Math.ceil(EXT / FLOW_GAP);
-        const flowMat = new THREE.MeshBasicMaterial({ map: flowTex, transparent: true, depthWrite: false, toneMapped: false, opacity: 0.35 });
+        const flowMat = new THREE.MeshBasicMaterial({ map: flowTex, transparent: true, depthWrite: false, toneMapped: false, opacity: 0.55 });
         const flowMesh = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), flowMat, FLOW_N);
         flowMesh.frustumCulled = false;
         flowMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
@@ -6591,11 +6620,11 @@
             const x = -M + k * FLOW_GAP + drift,
               slope = riverC(x + 0.5) - riverC(x - 0.5),
               rot = Math.atan2(-slope, 1);
-            setM(A, k * 16, x, -0.095, riverC(x), 0.7, 1, 0.35, rot);
+            setM(A, k * 16, x, -0.095, riverC(x), 1.2, 1, 0.6, rot);
           }
           flowMesh.instanceMatrix.needsUpdate = true;
           // clearer while a water layer is shown
-          flowMat.opacity = ["water", "sewer", "poll"].includes(st.overlay) ? 0.85 : 0.35;
+          flowMat.opacity = ["water", "sewer", "poll"].includes(st.overlay) ? 0.9 : 0.55;
         }
 
         function setTod(t) {
