@@ -627,6 +627,23 @@
               >৳২৫</small
             ><kbd>4</kbd>
           </button>
+          <h2>পরিবহন</h2>
+          <button class="tool" data-tool="rail">
+            <span
+              class="sw"
+              style="background: repeating-linear-gradient(90deg, #5b4636 0 2px, #8a8278 2px 5px)"
+            ></span
+            >রেললাইন<small>৳২০</small><kbd>L</kbd>
+          </button>
+          <button class="tool" data-tool="pstation">
+            <span class="sw" style="background: #2f6b4f"></span>যাত্রী স্টেশন<small
+              >৳৪,০০০</small
+            >
+          </button>
+          <button class="tool" data-tool="fstation">
+            <span class="sw" style="background: #2d5f86"></span>মালবাহী
+            স্টেশন<small>৳৫,০০০</small>
+          </button>
           <h2>সেবা</h2>
           <button class="tool" data-tool="power">
             <span class="sw" style="background: var(--plant)"></span
@@ -782,6 +799,7 @@
             <div class="ledger">
               <span>কর আয়</span><span id="lInc">৳০</span>
               <span>সম্পদ বিক্রি</span><span id="lRes">—</span>
+              <span>রেল আয়</span><span id="lRail">—</span>
               <span>রক্ষণাবেক্ষণ</span><span id="lUp">৳০</span>
               <span>বিদ্যুৎ</span><span id="lPow">০ / ০</span> <span>পানি</span
               ><span id="lWat">০ / ০</span> <span>পয়ঃনিষ্কাশন</span
@@ -802,6 +820,7 @@
               ><button data-o="poll">দূষণ</button
               ><button data-o="lv">জমির মান</button
               ><button data-o="res">সম্পদ</button
+              ><button data-o="rail">রেল</button
               ><button data-o="plots">এলাকা</button>
             </div>
             <div class="legend" id="resLegend" hidden>
@@ -865,6 +884,13 @@
                   ভরে যায়, তবে চুল্লি কখনো ভরে না।
                 </li>
                 <li>
+                  মূল রেললাইন মানচিত্রের এক মাথা থেকে আরেক মাথা পর্যন্ত গেছে।
+                  তার ওপর (বা তার সাথে জোড়া শাখা লাইনে) যাত্রী স্টেশন বসালে
+                  ১০ ঘরের মধ্যের মানুষ ট্রেনে চড়ে, ভাড়া আসে আর বাইরে থেকে
+                  লোক আসে। মালবাহী স্টেশনের ৩০ ঘরের মধ্যের কারখানার মাল ট্রেনে
+                  রপ্তানি হয়। রেললাইন রাস্তা পেরোলে লেভেল ক্রসিং হয়।
+                </li>
+                <li>
                   মানচিত্রে প্রাকৃতিক সম্পদ আছে ("সম্পদ" স্তরে দেখো)। তার ওপর
                   শিল্প জোন করলে বিশেষ শিল্প হয়: উর্বর জমিতে কৃষি খামার, বনে
                   কাঠশিল্প, আর লোহা, তেল ও কয়লার খনি। এগুলোতে চাকরি আর আয়
@@ -909,6 +935,10 @@
           TREAT: 10,
           DUMP: 11,
           INCIN: 12,
+          RAIL: 13,
+          CROSS: 14, // level crossing: a road and a railway on the same tile
+          PSTN: 15, // passenger station
+          FSTN: 16, // freight (cargo) station
         };
         const CAP = {
           3: [0, 20, 60, 140],
@@ -929,6 +959,11 @@
           incin: 8000,
           park: 80,
           bulldoze: 5,
+          rail: 20,
+          railBridge: 120,
+          cross: 30,
+          pstation: 4000,
+          fstation: 5000,
         };
         const TOOL_T = {
           road: T.ROAD,
@@ -942,6 +977,9 @@
           dump: T.DUMP,
           incin: T.INCIN,
           park: T.PARK,
+          rail: T.RAIL,
+          pstation: T.PSTN,
+          fstation: T.FSTN,
         };
         const ON_BANK = new Set([T.PUMP, T.OUTLET, T.TREAT]);
         const PLANT_CAP = 1000,
@@ -957,6 +995,8 @@
           [T.DUMP]: 40,
           [T.INCIN]: 150,
           [T.PARK]: 3,
+          [T.PSTN]: 60,
+          [T.FSTN]: 80,
         };
         const DUMP_STORE = 40000,
           DUMP_RATE = 1000,
@@ -1034,6 +1074,10 @@
           10: "পয়ঃশোধনাগার",
           11: "ময়লার ভাগাড়",
           12: "ময়লার চুল্লি",
+          13: "রেললাইন",
+          14: "লেভেল ক্রসিং",
+          15: "যাত্রী স্টেশন",
+          16: "মালবাহী স্টেশন",
         };
         const BN = "০১২৩৪৫৬৭৮৯";
         const bn = (s) => String(s).replace(/\d/g, (d) => BN[d]);
@@ -1132,7 +1176,7 @@
           dumpStore: 0,
           incOff: 0,
         };
-        let ledger = { inc: 0, up: 0, res: 0 };
+        let ledger = { inc: 0, up: 0, res: 0, rail: 0 };
 
         /* river: one meandering band across the map that keeps flowing east into the countryside */
         const riverMid = (x) =>
@@ -1272,8 +1316,18 @@
         function setT(x, y, t) {
           if (x < 0 || y < 0 || x >= W || y >= H) return;
           const i = y * W + x;
-          if (t !== T.ROAD && terrain[i]) return;
+          if (t !== T.ROAD && t !== T.RAIL && terrain[i]) return;
           type[i] = t;
+        }
+        // the national railway runs right across the map along the south edge of the starting plot
+        const RAIL_Y = PLOT * 2 - 1;
+        function layMainLine() {
+          for (let x = 0; x < W; x++) {
+            const i = RAIL_Y * W + x,
+              t = type[i];
+            if (t === T.GROUND || t === T.WATER) type[i] = T.RAIL;
+            else if (t === T.ROAD) type[i] = T.CROSS;
+          }
         }
         function rect(x0, x1, y0, y1, t) {
           for (let y = y0; y <= y1; y++)
@@ -1317,7 +1371,7 @@
           r(2, 5, 2, 3, T.I); // forestry in the north-west grove
           r(17, 29, 6, 6, T.ROAD);
           r(17, 25, 7, 8, T.I); // farms on the fertile north bank
-          r(6, 7, 30, 31, T.I); // a small coal pit in the south-west
+          r(6, 7, 30, 30, T.I); // a small coal pit in the south-west (row 31 is the railway)
           for (const [x, y] of [
             [15, 13],
             [17, 12],
@@ -1332,6 +1386,9 @@
             [30, 8],
           ])
             setT(O + x, O + y, T.OUTLET); // outlets downstream, by the second bridge
+          layMainLine();
+          setT(O + 16, O + 31, T.PSTN); // stations on the main line, each at the end of a street
+          setT(O + 24, O + 31, T.FSTN);
           computeRoadNear();
           for (let i = 0; i < N; i++) {
             const t = type[i];
@@ -1358,6 +1415,7 @@
         }
         function seedBlank() {
           makeTerrain();
+          layMainLine();
           st.funds = 30000;
           st.month = 0;
           st.tax = 9;
@@ -1367,6 +1425,12 @@
 
         /* ---------- simulation ---------- */
         const isZone = (t) => t >= 3 && t <= 5;
+        function isRd(t) {
+          return t === T.ROAD || t === T.CROSS;
+        }
+        function isRl(t) {
+          return t === T.RAIL || t === T.CROSS || t === T.PSTN || t === T.FSTN;
+        }
         // specialised industry on this tile (0 = generic). A used-up deposit falls back to an ordinary factory.
         const specOf = (i) =>
           type[i] === T.I && res[i] && (res[i] <= RS.FOREST || resAmt[i] > 0)
@@ -1404,7 +1468,7 @@
           roadNear.fill(0);
           roadTiles = [];
           for (let i = 0; i < N; i++) {
-            if (type[i] !== T.ROAD) continue;
+            if (!isRd(type[i])) continue;
             roadTiles.push(i);
             const x = i % W,
               y = (i / W) | 0;
@@ -1559,7 +1623,7 @@
           let rem = cap;
           for (let h = 0; h < q.length; h++) {
             const i = q[h];
-            if (type[i] === T.ROAD) {
+            if (isRd(type[i])) {
               arr[i] = 1; // this road carries a pipe
               const x = i % W,
                 y = (i / W) | 0;
@@ -1579,7 +1643,7 @@
               }
             }
             for (const j of nb(i))
-              if (!seen[j] && type[j] === T.ROAD) {
+              if (!seen[j] && isRd(type[j])) {
                 seen[j] = 1;
                 q.push(j);
               }
@@ -1657,7 +1721,7 @@
                 q = [],
                 got = new Uint8Array(N);
               for (const j of nb(i))
-                if (type[j] === T.ROAD) {
+                if (isRd(type[j])) {
                   dist.set(j, 1);
                   q.push(j);
                 }
@@ -1678,7 +1742,7 @@
                 }
                 if (d < TRUCK_RANGE)
                   for (const j of nb(r))
-                    if (type[j] === T.ROAD && !dist.has(j)) {
+                    if (isRd(type[j]) && !dist.has(j)) {
                       dist.set(j, d + 1);
                       q.push(j);
                     }
@@ -1741,7 +1805,7 @@
                 } else if (s === RS.FOREST && y < 0.6) thin++;
                 else if (s === RS.FARM && y < 0.7) smog++;
               }
-            } else if (t === T.ROAD) roads++;
+            } else if (isRd(t)) roads++;
             n[t] = (n[t] || 0) + 1;
             up += UPKEEP[t] || 0;
           }
@@ -1769,6 +1833,134 @@
           ledger.inc = Math.round((pop * 0.025 + jobs * 0.018) * st.tax);
           ledger.up = Math.round(roads * 0.4 + up);
         }
+        /* railway: stations count only if their track reaches the edge of the map (the national line);
+           passengers ride from every built lot within 10 tiles of a station, and factories within
+           30 road tiles of a cargo station send their goods by train */
+        const railConn = new Uint8Array(N),
+          pCov = new Uint8Array(N),
+          fCov = new Uint8Array(N);
+        function computeRail() {
+          railConn.fill(0);
+          pCov.fill(0);
+          fCov.fill(0);
+          const q = [];
+          for (let i = 0; i < N; i++) {
+            const x = i % W,
+              y = (i / W) | 0;
+            if (isRl(type[i]) && (x === 0 || y === 0 || x === W - 1 || y === H - 1)) {
+              railConn[i] = 1;
+              q.push(i);
+            }
+          }
+          for (let h = 0; h < q.length; h++)
+            for (const j of nb(q[h]))
+              if (!railConn[j] && isRl(type[j])) {
+                railConn[j] = 1;
+                q.push(j);
+              }
+          let pOn = 0,
+            pOff = 0,
+            fOn = 0,
+            fOff = 0,
+            riders = 0,
+            freight = 0,
+            track = 0;
+          const pst = [];
+          for (let i = 0; i < N; i++) {
+            const t = type[i];
+            if (t === T.PSTN) {
+              if (railConn[i]) {
+                pOn++;
+                pst.push(i);
+              } else pOff++;
+            } else if (t === T.FSTN) railConn[i] ? fOn++ : fOff++;
+            else if ((t === T.RAIL || t === T.CROSS) && owned[plotOf(i)]) track++;
+          }
+          if (pst.length)
+            for (let i = 0; i < N; i++) {
+              const t = type[i];
+              if ((t !== T.R && t !== T.C) || !lvl[i]) continue;
+              const x = i % W,
+                y = (i / W) | 0;
+              let near = false;
+              for (const s of pst) {
+                const dx = (s % W) - x,
+                  dy = ((s / W) | 0) - y;
+                if (dx * dx + dy * dy <= 100) {
+                  near = true;
+                  break;
+                }
+              }
+              if (!near) continue;
+              pCov[i] = 1;
+              riders += t === T.R ? CAP[3][lvl[i]] : CAP[4][lvl[i]] * 0.5;
+            }
+          for (let i = 0; i < N; i++) {
+            if (type[i] !== T.FSTN || !railConn[i]) continue;
+            const dist = new Map(),
+              rq = [];
+            for (const j of nb(i))
+              if (isRd(type[j])) {
+                dist.set(j, 1);
+                rq.push(j);
+              }
+            for (let h = 0; h < rq.length; h++) {
+              const r = rq[h],
+                d = dist.get(r),
+                x = r % W,
+                y = (r / W) | 0;
+              for (const [dx, dy] of NEAR2) {
+                const X = x + dx,
+                  Y = y + dy;
+                if (X < 0 || Y < 0 || X >= W || Y >= H) continue;
+                if (type[Y * W + X] === T.I) fCov[Y * W + X] = 1;
+              }
+              if (d < 30)
+                for (const j of nb(r))
+                  if (isRd(type[j]) && !dist.has(j)) {
+                    dist.set(j, d + 1);
+                    rq.push(j);
+                  }
+            }
+          }
+          for (let i = 0; i < N; i++) {
+            if (!fCov[i] || !lvl[i]) continue;
+            const s = specOf(i);
+            freight += s ? lvl[i] * SPEC_VALUE[s] * 0.3 * specYield(i) : lvl[i] * 1.5;
+          }
+          // stations make the land around them more valuable; the tracks are a little noisy
+          const nudge = (i, r, amt) => {
+            const x = i % W,
+              y = (i / W) | 0;
+            for (let dy = -r; dy <= r; dy++)
+              for (let dx = -r; dx <= r; dx++) {
+                const X = x + dx,
+                  Y = y + dy,
+                  d = Math.hypot(dx, dy);
+                if (X < 0 || Y < 0 || X >= W || Y >= H || d > r) continue;
+                const j = Y * W + X;
+                lv[j] = clamp(lv[j] + amt * (1 - d / (r + 1)), 0, 1);
+              }
+          };
+          for (const s of pst) nudge(s, 4, 0.1);
+          for (let i = 0; i < N; i++)
+            if ((type[i] === T.RAIL || type[i] === T.CROSS) && owned[plotOf(i)]) nudge(i, 1, -0.03);
+          ledger.rail = Math.round(riders * 0.05 + freight);
+          ledger.up += Math.round(track * 0.5);
+          if (pOn) {
+            dem.R += 0.08 * Math.min(2, pOn); // the train brings newcomers and shoppers
+            dem.C += 0.06 * Math.min(2, pOn);
+          }
+          if (fOn && freight > 0) dem.I += 0.12;
+          Object.assign(S, {
+            pstnOn: pOn,
+            pstnOff: pOff,
+            fstnOn: fOn,
+            fstnOff: fOff,
+            riders: Math.round(riders),
+            freight: Math.round(freight),
+          });
+        }
         function recompute() {
           computePower();
           computeEnv();
@@ -1776,6 +1968,7 @@
           computeSewer();
           computeGarbage();
           computeStats();
+          computeRail();
           advise();
         }
         function refreshAll() {
@@ -1868,7 +2061,7 @@
             else if (sc < -0.25 && lvl[i] > 0 && Math.random() < 0.08) lvl[i]--;
           }
           recompute();
-          st.funds += ledger.inc + ledger.res - ledger.up;
+          st.funds += ledger.inc + ledger.res + ledger.rail - ledger.up;
           for (let i = 0; i < N; i++) {
             if (lvl[i] !== before[i]) markTile(i, !lvl[i] !== !before[i]);
             else if (
@@ -2035,7 +2228,24 @@
               "hint",
               'মানচিত্রে বন, উর্বর জমি, লোহা, তেল আর কয়লা আছে। "সম্পদ" স্তর দেখে তার ওপর শিল্প জোন করো, বেশি আয় হবে।',
             ]);
-          if (ledger.inc + ledger.res - ledger.up < 0 && st.funds >= 0)
+          if (S.pstnOff + S.fstnOff)
+            out.push([
+              "hint",
+              `${bn(S.pstnOff + S.fstnOff)}টি স্টেশন মূল রেললাইনের সাথে যুক্ত নয়। রেললাইন দিয়ে জোড়ো।`,
+            ]);
+          if (S.pop > 3000 && !n(T.PSTN))
+            out.push([
+              "hint",
+              "শহরে যাত্রী স্টেশন নেই। মূল রেললাইনের ওপর স্টেশন বসালে ভাড়া থেকে আয় হবে আর বাইরে থেকে মানুষ আসবে।",
+            ]);
+          if (S.nSpec >= 4 && !n(T.FSTN))
+            out.push([
+              "hint",
+              "মালবাহী স্টেশন বসাও: কারখানা আর খনির মাল ট্রেনে রপ্তানি হলে আয় বাড়বে।",
+            ]);
+          else if (S.fstnOn && !S.freight)
+            out.push(["hint", "মালবাহী স্টেশনের ৩০ ঘরের মধ্যে কোনো শিল্প নেই।"]);
+          if (ledger.inc + ledger.res + ledger.rail - ledger.up < 0 && st.funds >= 0)
             out.push(["hint", "মাসিক হিসাব ঘাটতিতে চলছে।"]);
           if (st.tax >= 14)
             out.push([
@@ -2082,12 +2292,14 @@
           f.className = st.funds < 0 ? "neg" : "";
           $("sPop").textContent = fmt(S.pop);
           $("sJobs").textContent = fmt(S.cj + S.ij);
-          const net = ledger.inc + ledger.res - ledger.up,
+          const net = ledger.inc + ledger.res + ledger.rail - ledger.up,
             n = $("sNet");
           n.textContent = (net >= 0 ? "+" : "") + taka(net);
           n.className = net < 0 ? "neg" : "pos";
           $("lInc").textContent = taka(ledger.inc);
           $("lUp").textContent = taka(ledger.up);
+          $("lRail").textContent =
+            S.pstnOn + S.fstnOn ? `${taka(ledger.rail)} · ${fmt(S.riders)} যাত্রী` : "—";
           $("lRes").textContent = S.nSpec
             ? `${taka(ledger.res)} · ${bn(S.nSpec)}টি`
             : "—";
@@ -2339,11 +2551,36 @@
           if (tool === "road") {
             if (t === T.GROUND) return COST.road;
             if (t === T.WATER) return COST.bridge;
+            if (t === T.RAIL && !terrain[i]) return COST.cross;
             return -1;
           }
+          if (tool === "rail") {
+            if (t === T.GROUND) return COST.rail;
+            if (t === T.WATER) return COST.railBridge;
+            if (t === T.ROAD && !terrain[i]) return COST.cross;
+            return -1;
+          }
+          if (tool === "pstation" || tool === "fstation")
+            return t === T.RAIL &&
+              !terrain[i] &&
+              railStraight(i) &&
+              nb(i).some((j) => isRd(type[j]))
+              ? COST[tool]
+              : -1;
           if (ON_BANK.has(TOOL_T[tool]))
             return t === T.GROUND && nearRiver(i) ? COST[tool] : -1;
           return t === T.GROUND ? COST[tool] : -1;
+        }
+        // a station needs a plain straight piece of track (rails on two opposite sides only)
+        function railStraight(i) {
+          const x = i % W,
+            y = (i / W) | 0,
+            at = (X, Y) => X >= 0 && Y >= 0 && X < W && Y < H && isRl(type[Y * W + X]);
+          const e = at(x + 1, y),
+            w = at(x - 1, y),
+            n = at(x, y - 1),
+            s2 = at(x, y + 1);
+          return (e && w && !n && !s2) || (n && s2 && !e && !w);
         }
         let changed = false;
         function place(x, y) {
@@ -2356,6 +2593,12 @@
               flash("এই এলাকা এখনও কেনা হয়নি");
             else if (ON_BANK.has(TOOL_T[tool]) && type[i] === T.GROUND)
               flash("এটা নদীর পাড়ে বসাতে হবে");
+            else if (tool === "pstation" || tool === "fstation")
+              flash(
+                type[i] === T.RAIL
+                  ? "স্টেশন বসে সোজা রেললাইনের ওপর, আর পাশে রাস্তা লাগে"
+                  : "স্টেশন রেললাইনের ওপর বসাতে হয়",
+              );
             return;
           }
           if (st.funds < c) {
@@ -2363,7 +2606,21 @@
             return;
           }
           st.funds -= c;
-          if (tool === "bulldoze") type[i] = terrain[i] ? T.WATER : T.GROUND;
+          const was = type[i];
+          if (tool === "bulldoze")
+            type[i] =
+              was === T.CROSS
+                ? T.ROAD // the rails go first, the road stays
+                : was === T.PSTN || was === T.FSTN
+                  ? T.RAIL
+                  : terrain[i]
+                    ? T.WATER
+                    : T.GROUND;
+          else if (
+            (tool === "rail" && was === T.ROAD) ||
+            (tool === "road" && was === T.RAIL)
+          )
+            type[i] = T.CROSS;
           else type[i] = TOOL_T[tool];
           lvl[i] = 0;
           trash[i] = 0;
@@ -2470,6 +2727,7 @@
             if (!Array.isArray(d.owned) || d.owned.length !== PW * PW || !Number.isFinite(d.funds) || !Number.isFinite(d.month)) return false;
             makeTerrain();
             type.set(ty);
+            if (!ty.some((v) => v >= T.RAIL && v <= T.FSTN)) layMainLine(); // a save from before the railway
             lvl.set(lv2);
             trash.set(tr);
             fill.set(fi);
@@ -2567,6 +2825,18 @@
           spoil: P3([0x8a7d6a, 0x7b6f60, 0x9a8b72]),
         };
         const K = {
+          ballast: C3(0x8a8278),
+          sleeper: C3(0x5b4636),
+          railSteel: C3(0xaab1b8),
+          platform: C3(0xbdb6a6),
+          station: C3(0xe6d3b3),
+          stationRoof: C3(0x9b3b2c),
+          canopy: C3(0x5e6b73),
+          locoP: C3(0xd0522f),
+          locoF: C3(0x2d5f86),
+          coach: C3(0x2f6b4f),
+          coachRoof: C3(0x8a8f94),
+          wagon: C3(0x3b3f45),
           tank: C3(0x2b2e33),
           brick: C3(0xa4503a),
           concrete: C3(0xc9c5bb),
@@ -3916,7 +4186,7 @@
         }
         function drawRoad(x, y, i) {
           const isR = (X, Y) =>
-            X >= 0 && Y >= 0 && X < W && Y < H && type[Y * W + X] === T.ROAD;
+            X >= 0 && Y >= 0 && X < W && Y < H && isRd(type[Y * W + X]);
           const n = isR(x, y - 1),
             s = isR(x, y + 1),
             w = isR(x - 1, y),
@@ -4017,6 +4287,16 @@
             if (w) zb(x + 0.02, y + a, x + 0.13, y + b, false);
             if (e) zb(x + 0.87, y + a, x + 0.98, y + b, false);
           }
+          if (type[i] === T.CROSS) {
+            drawRail(x, y, i, true); // rails across the asphalt, with barrier posts
+            const rl = (X, Y) => X >= 0 && Y >= 0 && X < W && Y < H && isRl(type[Y * W + X]);
+            const pts = rl(x - 1, y) || rl(x + 1, y) ? [[0.1, 0.06], [0.9, 0.94]] : [[0.06, 0.1], [0.94, 0.9]];
+            for (const [px, pz] of pts) {
+              box(x + px - 0.015, y + pz - 0.015, x + px + 0.015, y + pz + 0.015, 0.03, 0.3, K.white);
+              box(x + px - 0.018, y + pz - 0.018, x + px + 0.018, y + pz + 0.018, 0.22, 0.27, K.red);
+            }
+            return 0.3;
+          }
           if (hash(i + 99) < 0.3 && !terrain[i]) {
             // street lamp
             box(x + 0.06, y + 0.06, x + 0.085, y + 0.085, 0.03, 0.5, K.dark);
@@ -4024,6 +4304,104 @@
             glow(x + 0.12, y + 0.12, 0.55, K.lamp);
           }
           return 0.1;
+        }
+
+        // railway track: ballast, sleepers and two rails on each arm towards a connected neighbour.
+        // Outside the map only the national line exists, so edge tiles keep running into the countryside.
+        function drawRail(x, y, i, onRoad) {
+          const isL = (X, Y) =>
+            X >= 0 && Y >= 0 && X < W && Y < H ? isRl(type[Y * W + X]) : Y === RAIL_Y;
+          const n = isL(x, y - 1),
+            s2 = isL(x, y + 1),
+            w = isL(x - 1, y),
+            e = isL(x + 1, y);
+          let arms = [];
+          if (n) arms.push([0, -1]);
+          if (s2) arms.push([0, 1]);
+          if (w) arms.push([-1, 0]);
+          if (e) arms.push([1, 0]);
+          if (!arms.length) arms = [[-1, 0], [1, 0]];
+          const y0 = onRoad ? 0.04 : 0.03;
+          if (!onRoad && i >= 0 && terrain[i]) {
+            // rail bridge: deck, pier and steel girders along both sides
+            box(x, y, x + 1, y + 1, -0.14, 0, K.concrete);
+            if ((x + y) % 2 === 0) cyl(x + 0.5, y + 0.5, 0.09, -0.36, -0.14, K.concrete);
+            if (n || s2) {
+              box(x + 0.08, y, x + 0.12, y + 1, 0, 0.2, K.steel);
+              box(x + 0.88, y, x + 0.92, y + 1, 0, 0.2, K.steel);
+            } else {
+              box(x, y + 0.08, x + 1, y + 0.12, 0, 0.2, K.steel);
+              box(x, y + 0.88, x + 1, y + 0.92, 0, 0.2, K.steel);
+            }
+          }
+          const cx = x + 0.5,
+            cz = y + 0.5;
+          for (const [dx, dz] of arms) {
+            const along = dx !== 0;
+            if (!onRoad) {
+              const ex = cx + dx * 0.5,
+                ez = cz + dz * 0.5;
+              if (along) flat(Math.min(cx - dx * 0.24, ex), cz - 0.24, Math.max(cx - dx * 0.24, ex), cz + 0.24, 0, 0.03, K.ballast);
+              else flat(cx - 0.24, Math.min(cz - dz * 0.24, ez), cx + 0.24, Math.max(cz - dz * 0.24, ez), 0, 0.03, K.ballast);
+              for (const f of [0.12, 0.37]) {
+                const sx = cx + dx * f,
+                  sz = cz + dz * f;
+                if (along) flat(sx - 0.03, cz - 0.18, sx + 0.03, cz + 0.18, 0.03, 0.045, K.sleeper);
+                else flat(cx - 0.18, sz - 0.03, cx + 0.18, sz + 0.03, 0.03, 0.045, K.sleeper);
+              }
+            }
+            const a = cx - dx * 0.11,
+              b = cx + dx * 0.5,
+              c = cz - dz * 0.11,
+              d = cz + dz * 0.5;
+            for (const o of [-0.1, 0.1]) {
+              if (along) flat(Math.min(a, b), cz + o - 0.012, Math.max(a, b), cz + o + 0.012, y0 + 0.015, y0 + 0.04, K.railSteel);
+              else flat(cx + o - 0.012, Math.min(c, d), cx + o + 0.012, Math.max(c, d), y0 + 0.015, y0 + 0.04, K.railSteel);
+            }
+          }
+          return 0.1;
+        }
+        // stations straddle a straight piece of track; the building faces the street
+        function drawStation(x, y, i) {
+          drawRail(x, y, i, false);
+          const isL = (X, Y) =>
+            X >= 0 && Y >= 0 && X < W && Y < H ? isRl(type[Y * W + X]) : Y === RAIL_Y;
+          const roadAt = (X, Y) => X >= 0 && Y >= 0 && X < W && Y < H && isRd(type[Y * W + X]);
+          const alongX = isL(x - 1, y) || isL(x + 1, y);
+          const side = alongX ? (roadAt(x, y - 1) ? -1 : 1) : roadAt(x - 1, y) ? -1 : 1;
+          // a rectangle given along the track (a0..a1) and across it, measured from the track towards the street (c0..c1)
+          const rc = (a0, a1, c0, c1) => {
+            const p = 0.5 + side * c0,
+              q = 0.5 + side * c1,
+              p0 = Math.min(p, q),
+              p1 = Math.max(p, q);
+            return alongX ? [x + a0, y + p0, x + a1, y + p1] : [x + p0, y + a0, x + p1, y + a1];
+          };
+          const B = (a0, a1, c0, c1, y0, y1, col, win) => box(...rc(a0, a1, c0, c1), y0, y1, col, win);
+          const h = hash(i);
+          if (type[i] === T.PSTN) {
+            B(0.02, 0.98, 0.18, 0.34, 0, 0.07, K.platform);
+            B(0.12, 0.88, 0.34, 0.5, 0, 0.34, K.station, [1, 0.34, 0.12, i]);
+            prism(...rc(0.1, 0.9, 0.32, 0.5), 0.34, 0.12, K.stationRoof, alongX);
+            B(0.04, 0.96, 0.16, 0.36, 0.29, 0.31, K.canopy); // platform canopy on posts
+            for (const a of [0.15, 0.5, 0.85]) B(a - 0.015, a + 0.015, 0.2, 0.23, 0.07, 0.29, K.dark);
+            B(0.4, 0.6, 0.5, 0.51, 0.22, 0.29, K.coach); // name board
+            const [lx0, lz0, lx1, lz1] = rc(0.47, 0.53, 0.25, 0.28);
+            lit(lx0, lz0, lx1, lz1, 0.26, 0.29, K.lamp);
+            glow((lx0 + lx1) / 2, (lz0 + lz1) / 2, 0.5, K.lamp);
+            return 0.5;
+          }
+          // freight terminal: a gantry crane over the track and stacked containers by the road
+          for (const a of [0.28, 0.66])
+            for (const c of [-0.42, 0.38]) B(a, a + 0.05, c, c + 0.04, 0, 0.72, K.yellow);
+          B(0.28, 0.33, -0.42, 0.42, 0.66, 0.73, K.yellow);
+          B(0.66, 0.71, -0.42, 0.42, 0.66, 0.73, K.yellow);
+          B(0.3, 0.7, -0.05, 0.05, 0.6, 0.66, K.dark);
+          B(0.06, 0.34, 0.28, 0.46, 0, 0.12, pick(PAL.container, h));
+          B(0.38, 0.66, 0.28, 0.46, 0, 0.12, pick(PAL.container, (h * 7) % 1));
+          B(0.08, 0.32, 0.28, 0.46, 0.12, 0.24, pick(PAL.container, (h * 13) % 1));
+          B(0.72, 0.96, 0.3, 0.48, 0, 0.22, K.station, [1, 0.22, 0.12, i]);
+          return 0.75;
         }
 
         /* ---- chunks: the map is drawn in 16x16 tile blocks, each rebuilt only when something in it changes ---- */
@@ -4143,7 +4521,9 @@
                   fbm(x * 0.09 + 40, y * 0.09 + 11) > 0.62
                 )
                   tree(x + 0.75, y + 0.78, 0.75, h);
-              } else if (t === T.ROAD) top = drawRoad(x, y, i);
+              } else if (isRd(t)) top = drawRoad(x, y, i);
+              else if (t === T.RAIL) top = drawRail(x, y, i, false);
+              else if (t === T.PSTN || t === T.FSTN) top = drawStation(x, y, i);
               else if (t === T.R) top = drawRes(x, y, L, i, h, h2, h3);
               else if (t === T.C) top = drawCom(x, y, L, i, h, h2, h3);
               else if (t === T.I) {
@@ -4187,7 +4567,8 @@
             const mask =
               smooth(3, 12, d) *
               (1 - smooth(M - 6, M, d)) *
-              smooth(2, 10, Math.abs(Z - riverMid(X) - 0.5));
+              smooth(2, 10, Math.abs(Z - riverMid(X) - 0.5)) *
+              smooth(1.5, 7, Math.abs(Z - RAIL_Y - 0.5)); // a flat corridor for the railway
             hgt +=
               mask *
               (0.3 + Math.max(0, fbm(X * 0.05 + 3, Z * 0.05 + 8) - 0.35) * 7);
@@ -4302,7 +4683,12 @@
             if (dx) g.fillRect(dx < 0 ? px : px + GT - 4, py, 4, GT);
             else g.fillRect(px, dy < 0 ? py : py + GT - 4, GT, 4);
           }
-          if (t === T.ROAD) {
+          if (t === T.RAIL) {
+            g.fillStyle = "rgb(150,142,124)";
+            g.fillRect(px, py, GT, GT);
+            return;
+          }
+          if (isRd(t)) {
             g.fillStyle = "rgb(176,170,156)";
             g.fillRect(px, py, GT, GT);
             return;
@@ -4408,6 +4794,11 @@
               const x = tx - M,
                 y = ty - M;
               if (x >= 0 && x < W && y >= 0 && y < H) continue;
+              if (y === RAIL_Y) {
+                g.fillStyle = "rgb(150,142,124)";
+                g.fillRect(tx * PX, ty * PX, PX, PX);
+                continue;
+              }
               if (riverAt(x, y)) {
                 g.fillStyle = css(BED);
                 g.fillRect(tx * PX, ty * PX, PX, PX);
@@ -4462,6 +4853,11 @@
               if (bx >= 0 && bx < W && by >= 0 && by < H) continue;
               for (let y = by; y < by + 16; y++)
                 for (let x = bx; x < bx + 16; x++) {
+                  if (y === RAIL_Y) {
+                    drawRail(x, y, -1, false);
+                    continue;
+                  }
+                  if (Math.abs(y - RAIL_Y) === 1) continue; // keep the line clear of trees
                   if (riverAt(x, y) || riverAt(x, y - 1) || riverAt(x, y + 1))
                     continue;
                   const h = hash2(x + 500, y + 900),
@@ -4671,11 +5067,11 @@
                 t = type[i];
               let f = null;
               if (o === "power") {
-                if (t < 2 || (t === T.ROAD && !powered[i])) continue;
+                if (t < 2 || (isRd(t) && !powered[i])) continue;
                 f = powered[i] ? good + ".6)" : bad + ".7)";
               } else if (o === "water" || o === "sewer") {
                 const arr = o === "water" ? watered : sewered;
-                if (t === T.ROAD) {
+                if (isRd(t)) {
                   if (!arr[i]) continue;
                   f = (o === "water" ? blue : brown) + ".75)";
                 } else if (
@@ -4704,7 +5100,12 @@
                 f = bad + (poll[i] * 0.85).toFixed(2) + ")";
               } else if (o === "lv")
                 f = `rgba(44,140,110,${(lv[i] * 0.85).toFixed(2)})`;
-              else if (o === "res") {
+              else if (o === "rail") {
+                if (isRl(t)) f = railConn[i] ? good + ".8)" : bad + ".8)";
+                else if (pCov[i]) f = blue + ".35)";
+                else if (fCov[i] && lvl[i]) f = brown + ".55)";
+                else continue;
+              } else if (o === "res") {
                 const r = res[i];
                 if (!r || t === T.WATER) continue; // stronger colour = more left; outlined = being worked
                 f =
@@ -4906,7 +5307,7 @@
         let cars = [],
           nTrucks = 0;
         const CAR_TOP = PAL.car.map((c) => shade(c, 0.75));
-        const roadNb = (i) => nb(i).filter((j) => type[j] === T.ROAD);
+        const roadNb = (i) => nb(i).filter((j) => isRd(type[j]));
         function spawnCar(truck) {
           if (!roadTiles.length) return;
           const a = roadTiles[(Math.random() * roadTiles.length) | 0];
@@ -4941,7 +5342,7 @@
           else if (haveC > nC) removeCar(false);
           const sp = [0, 0.9, 1.7, 2.8][st.speed] * dt;
           for (const c of cars) {
-            if (type[c.a] !== T.ROAD || type[c.b] !== T.ROAD) {
+            if (!isRd(type[c.a]) || !isRd(type[c.b])) {
               c.a = -1;
               continue;
             }
@@ -5059,6 +5460,152 @@
           steamMesh.count = b;
           smokeMesh.instanceMatrix.needsUpdate =
             steamMesh.instanceMatrix.needsUpdate = true;
+        }
+
+        /* ---- trains: passenger and freight trains run on any track; the national line carries
+           them in from the countryside and out again ---- */
+        const railAt = (x, y) =>
+          x >= 0 && x < W && y >= 0 && y < H ? isRl(type[y * W + x]) : y === RAIL_Y && x >= -M && x < W + M;
+        const MAXTC = 160; // train cars on screen at once
+        const trainGeo = G.box.clone();
+        trainGeo.setAttribute("aWin", new THREE.InstancedBufferAttribute(new Float32Array(MAXTC * 4), 4));
+        const trainBody = new THREE.InstancedMesh(trainGeo, matBuild, MAXTC),
+          trainTop = new THREE.InstancedMesh(G.box, matPlain, MAXTC);
+        for (const m of [trainBody, trainTop]) {
+          m.frustumCulled = false;
+          m.count = 0;
+          m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+          m.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(MAXTC * 3), 3);
+          scene.add(m);
+        }
+        let trains = [];
+        // the national line is worked one way (west to east), so trains never meet head-on;
+        // a new train waits until the one before it is well down the line
+        function spawnTrain(kind) {
+          for (const tr of trains) if (tr.ay === RAIL_Y && tr.ax < -M + 12) return;
+          const x = -M,
+            dir = 1,
+            hist = [];
+          for (let k = 1; k <= 10; k++) hist.push([x - dir * k, RAIL_Y]);
+          trains.push({ ax: x, ay: RAIL_Y, bx: x + dir, by: RAIL_Y, t: 0, hist, kind, dwell: 0, n: kind === "p" ? 5 : 7, seed: (Math.random() * 997) | 0 });
+        }
+        function updateTrains(dt) {
+          const wantP = reduce ? 0 : 1 + Math.min(3, S.pstnOn || 0),
+            wantF = reduce ? 0 : 1 + Math.min(3, S.fstnOn || 0);
+          let haveP = 0,
+            haveF = 0;
+          for (const tr of trains) tr.kind === "p" ? haveP++ : haveF++;
+          if (haveP < wantP && Math.random() < dt * 0.3) spawnTrain("p"); // trains turn up now and then, not all at once
+          if (haveF < wantF && Math.random() < dt * 0.3) spawnTrain("f");
+          const pace = [0, 1, 1.8, 3][st.speed],
+            sp = 2.2 * pace * dt;
+          for (const tr of trains) {
+            if (tr.dwell > 0) {
+              tr.dwell -= dt * pace;
+              continue;
+            }
+            if (!railAt(tr.ax, tr.ay) || !railAt(tr.bx, tr.by)) {
+              tr.dead = true;
+              continue;
+            }
+            tr.t += sp;
+            while (tr.t >= 1 && !tr.dead) {
+              tr.t -= 1;
+              tr.hist.unshift([tr.ax, tr.ay]);
+              if (tr.hist.length > 10) tr.hist.pop();
+              const dx = tr.bx - tr.ax,
+                dy = tr.by - tr.ay;
+              tr.ax = tr.bx;
+              tr.ay = tr.by;
+              if (tr.ax >= 0 && tr.ax < W && tr.ay >= 0 && tr.ay < H) {
+                const here = type[tr.ay * W + tr.ax];
+                if ((tr.kind === "p" && here === T.PSTN) || (tr.kind === "f" && here === T.FSTN)) {
+                  tr.dwell = 2.5; // stop at the station for a moment
+                  tr.t = 0;
+                }
+              }
+              // straight on where possible, otherwise any way but back; at the end of the line the train leaves
+              const opts = [];
+              for (const [ox, oy] of [[dx, dy], [dy, dx], [-dy, -dx]])
+                if (railAt(tr.ax + ox, tr.ay + oy)) opts.push([ox, oy]);
+              if (!opts.length) {
+                tr.dead = true;
+                break;
+              }
+              const pickd = opts[0][0] === dx && opts[0][1] === dy && Math.random() < 0.65 ? opts[0] : opts[(Math.random() * opts.length) | 0];
+              tr.bx = tr.ax + pickd[0];
+              tr.by = tr.ay + pickd[1];
+              if (tr.dwell) break;
+            }
+          }
+          let live = 0;
+          for (let r = 0; r < trains.length; r++) if (!trains[r].dead) trains[live++] = trains[r];
+          trains.length = live;
+          // lay the cars out along the track behind the head
+          const A = trainBody.instanceMatrix.array,
+            Bm = trainTop.instanceMatrix.array,
+            cA = trainBody.instanceColor.array,
+            cB = trainTop.instanceColor.array,
+            wA = trainGeo.attributes.aWin.array;
+          let k = 0;
+          for (const tr of trains)
+            for (let c = 0; c < tr.n && k < MAXTC; c++) {
+              const s = c * 0.95 + 0.45;
+              let px, pz, dx, dz;
+              if (s <= tr.t) {
+                dx = tr.bx - tr.ax;
+                dz = tr.by - tr.ay;
+                px = tr.ax + dx * (tr.t - s);
+                pz = tr.ay + dz * (tr.t - s);
+              } else {
+                const r = s - tr.t,
+                  j = Math.floor(r),
+                  f = r - j,
+                  p0 = j === 0 ? [tr.ax, tr.ay] : tr.hist[j - 1] || tr.hist[tr.hist.length - 1],
+                  p1 = tr.hist[j] || p0;
+                dx = p0[0] - p1[0];
+                dz = p0[1] - p1[1];
+                px = p0[0] - dx * f;
+                pz = p0[1] - dz * f;
+              }
+              const rot = Math.atan2(-dz, dx),
+                X = px + 0.5,
+                Z = pz + 0.5,
+                y0 = 0.07,
+                loco = c === 0,
+                pass = tr.kind === "p";
+              let body, top;
+              if (loco) {
+                body = pass ? K.locoP : K.locoF;
+                top = K.dark;
+                setM(A, k * 16, X, y0, Z, 0.86, 0.26, 0.2, rot);
+                setM(Bm, k * 16, X + dx * 0.24, y0 + 0.26, Z + dz * 0.24, 0.3, 0.06, 0.18, rot);
+                wA.set([0, 0.3, 0.2, 0], k * 4);
+              } else if (pass) {
+                body = K.coach;
+                top = K.coachRoof;
+                setM(A, k * 16, X, y0, Z, 0.86, 0.25, 0.2, rot);
+                setM(Bm, k * 16, X, y0 + 0.25, Z, 0.84, 0.03, 0.18, rot);
+                wA.set([2, 0.25, 1, tr.seed + c], k * 4); // a strip of windows along each coach
+              } else {
+                body = K.wagon;
+                top = pick(PAL.container, hash(tr.seed * 13 + c));
+                setM(A, k * 16, X, y0, Z, 0.86, 0.06, 0.2, rot);
+                setM(Bm, k * 16, X, y0 + 0.06, Z, 0.78, 0.2, 0.19, rot);
+                wA.set([0, 0.3, 0.2, 0], k * 4);
+              }
+              cA[k * 3] = body.r;
+              cA[k * 3 + 1] = body.g;
+              cA[k * 3 + 2] = body.b;
+              cB[k * 3] = top.r;
+              cB[k * 3 + 1] = top.g;
+              cB[k * 3 + 2] = top.b;
+              k++;
+            }
+          trainBody.count = trainTop.count = k;
+          trainBody.instanceMatrix.needsUpdate = trainTop.instanceMatrix.needsUpdate = true;
+          trainBody.instanceColor.needsUpdate = trainTop.instanceColor.needsUpdate = true;
+          trainGeo.attributes.aWin.needsUpdate = true;
         }
 
         function setTod(t) {
@@ -5460,6 +6007,8 @@
             8: "dump",
             9: "park",
             0: "bulldoze",
+            l: "rail",
+            L: "rail",
             b: "buy",
             B: "buy",
           };
@@ -5587,6 +6136,11 @@
                 ? `মাসে ${fmt(INCIN_RATE)} পোড়ায়`
                 : "বিদ্যুৎ নেই, বন্ধ",
             );
+          if (isRl(t)) {
+            parts.push(railConn[i] ? "মূল রেললাইনের সাথে যুক্ত" : "মূল রেললাইনের সাথে যুক্ত নয়");
+            if (t === T.PSTN && railConn[i]) parts.push(`শহরের মোট যাত্রী মাসে ${fmt(S.riders)}`);
+            if (t === T.FSTN && railConn[i]) parts.push(`মালভাড়া মাসে ${taka(S.freight)}`);
+          } else if (pCov[i]) parts.push("কাছে ট্রেন স্টেশন আছে");
           parts.push(
             `দূষণ ${bn(Math.round(poll[i] * 100))}%`,
             `জমির মান ${bn(Math.round(lv[i] * 100))}%`,
@@ -5599,6 +6153,11 @@
             owned[plotOf(i)]
           )
             parts.push("এটা শুধু নদীর পাড়ে বসে");
+          else if (
+            (st.tool === "pstation" || st.tool === "fstation") &&
+            owned[plotOf(i)]
+          )
+            parts.push("স্টেশন বসে সোজা রেললাইনের ওপর, পাশে রাস্তা লাগে");
           $("hover").textContent = parts.join(" · ");
         }
         function updateBrush() {
@@ -5700,6 +6259,7 @@
             waterNormal.offset.x -= dt * 0.012;
             waterNormal.offset.y += dt * 0.002;
             updateCars(dt);
+            updateTrains(dt);
             updateSmoke();
             redraw = true;
           }
