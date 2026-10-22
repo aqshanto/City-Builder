@@ -339,6 +339,19 @@
       .why:empty {
         display: none;
       }
+      .aprot {
+        position: absolute;
+        right: 10px;
+        top: 10px;
+        padding: 8px 12px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: color-mix(in srgb, var(--panel) 92%, transparent);
+        color: var(--ink);
+        font: inherit;
+        font-size: 0.86rem;
+        cursor: pointer;
+      }
       .toasts {
         position: absolute;
         left: 10px;
@@ -590,6 +603,15 @@
       }
 
       @media (min-width: 1001px) {
+        .tools,
+        .side {
+          position: sticky;
+          top: 8px;
+          max-height: calc(100vh - 16px);
+          overflow-y: auto;
+          scrollbar-width: thin;
+          padding-right: 2px;
+        }
         .tool kbd {
           display: inline;
           font: inherit;
@@ -692,14 +714,19 @@
           <button class="tool" data-tool="rail">
             <span
               class="sw"
-              style="background: repeating-linear-gradient(90deg, #5b4636 0 2px, #8a8278 2px 5px)"
+              style="
+                background: repeating-linear-gradient(
+                  90deg,
+                  #5b4636 0 2px,
+                  #8a8278 2px 5px
+                );
+              "
             ></span
             >রেললাইন<small>৳২০</small><kbd>L</kbd>
           </button>
           <button class="tool" data-tool="pstation">
-            <span class="sw" style="background: #2f6b4f"></span>যাত্রী স্টেশন<small
-              >৳৪,০০০</small
-            >
+            <span class="sw" style="background: #2f6b4f"></span>যাত্রী
+            স্টেশন<small>৳৪,০০০</small>
           </button>
           <button class="tool" data-tool="fstation">
             <span class="sw" style="background: #2d5f86"></span>মালবাহী
@@ -713,7 +740,13 @@
           <button class="tool" data-tool="airport">
             <span
               class="sw"
-              style="background: repeating-linear-gradient(90deg, #34373b 0 6px, #f2f2ee 6px 8px)"
+              style="
+                background: repeating-linear-gradient(
+                  90deg,
+                  #34373b 0 6px,
+                  #f2f2ee 6px 8px
+                );
+              "
             ></span
             >বিমানবন্দর<small>৳৪০,০০০</small>
           </button>
@@ -829,6 +862,7 @@
             </div>
             <div class="glerr" id="glerr"></div>
             <div class="toasts" id="toasts" aria-live="polite"></div>
+            <button class="aprot" id="apRotate" hidden>⟳ বিমানবন্দর ঘোরাও (T)</button>
           </div>
           <div class="status">
             <span id="hover"
@@ -941,7 +975,12 @@
             <div class="acts">
               <button class="act" id="btnExport">ফাইলে নামাও</button>
               <button class="act" id="btnImport">ফাইল থেকে খোলো</button>
-              <input type="file" id="fileIn" accept=".json,application/json" hidden />
+              <input
+                type="file"
+                id="fileIn"
+                accept=".json,application/json"
+                hidden
+              />
             </div>
           </div>
           <div class="block">
@@ -973,20 +1012,20 @@
                   ভরে যায়, তবে চুল্লি কখনো ভরে না।
                 </li>
                 <li>
-                  টাকা: সমস্যায় থাকা প্লটের মানুষ (বিদ্যুৎ, পানি, পয়ঃ বা ময়লার
-                  সমস্যা) অর্ধেক কর দেয়, আর শহর বড় হলে প্রশাসন খরচ বাড়ে। ভুল
-                  করে কিছু বানালে Ctrl+Z চাপো, খরচ ফেরত আসবে।
+                  টাকা: সমস্যায় থাকা প্লটের মানুষ (বিদ্যুৎ, পানি, পয়ঃ বা
+                  ময়লার সমস্যা) অর্ধেক কর দেয়, আর শহর বড় হলে প্রশাসন খরচ
+                  বাড়ে। ভুল করে কিছু বানালে Ctrl+Z চাপো, খরচ ফেরত আসবে।
                 </li>
                 <li>
                   সময়: ১× গতিতে ৫ সেকেন্ডে ১ দিন, ৩০ দিনে এক মাস। মাস শেষ হলে
-                  আয়-ব্যয় আর ভবনের বৃদ্ধি হিসাব হয়। তাড়াতাড়ি এগোতে ২×, ৪× বা
-                  ১০× বেছে নাও।
+                  আয়-ব্যয় আর ভবনের বৃদ্ধি হিসাব হয়। তাড়াতাড়ি এগোতে ২×, ৪×
+                  বা ১০× বেছে নাও।
                 </li>
                 <li>
                   মূল রেললাইন মানচিত্রের এক মাথা থেকে আরেক মাথা পর্যন্ত গেছে।
-                  তার ওপর (বা তার সাথে জোড়া শাখা লাইনে) যাত্রী স্টেশন বসালে
-                  ১০ ঘরের মধ্যের মানুষ ট্রেনে চড়ে, ভাড়া আসে আর বাইরে থেকে
-                  লোক আসে। মালবাহী স্টেশনের ৩০ ঘরের মধ্যের কারখানার মাল ট্রেনে
+                  তার ওপর (বা তার সাথে জোড়া শাখা লাইনে) যাত্রী স্টেশন বসালে ১০
+                  ঘরের মধ্যের মানুষ ট্রেনে চড়ে, ভাড়া আসে আর বাইরে থেকে লোক
+                  আসে। মালবাহী স্টেশনের ৩০ ঘরের মধ্যের কারখানার মাল ট্রেনে
                   রপ্তানি হয়। রেললাইন রাস্তা পেরোলে লেভেল ক্রসিং হয়।
                 </li>
                 <li>
@@ -995,14 +1034,14 @@
                   পর্যটক আর ব্যবসা আনে, তবে রানওয়ের আশেপাশে শব্দদূষণ হয়।
                 </li>
                 <li>
-                  নদী পশ্চিম থেকে পূর্বে বয়: পানির ওপর সাদা তীরচিহ্ন স্রোতের দিক
-                  দেখায়। আউটলেটের ময়লা স্রোতের সাথে পূর্বে যায়, তাই পাম্প
+                  নদী পশ্চিম থেকে পূর্বে বয়: পানির ওপর সাদা তীরচিহ্ন স্রোতের
+                  দিক দেখায়। আউটলেটের ময়লা স্রোতের সাথে পূর্বে যায়, তাই পাম্প
                   রাখো পশ্চিমে (উজানে)।
                 </li>
                 <li>
-                  নদীর পাড়ে লঞ্চঘাট বসালে আশেপাশের মানুষ লঞ্চে চড়ে, আর নদীবন্দর
-                  বসালে রাস্তা ধরে ৩০ ঘরের মধ্যের কারখানার মাল জাহাজে রপ্তানি হয়।
-                  ব্রিজগুলো উঁচু, তাই জাহাজ নিচ দিয়ে যায়।
+                  নদীর পাড়ে লঞ্চঘাট বসালে আশেপাশের মানুষ লঞ্চে চড়ে, আর
+                  নদীবন্দর বসালে রাস্তা ধরে ৩০ ঘরের মধ্যের কারখানার মাল জাহাজে
+                  রপ্তানি হয়। ব্রিজগুলো উঁচু, তাই জাহাজ নিচ দিয়ে যায়।
                 </li>
                 <li>
                   মানচিত্রে প্রাকৃতিক সম্পদ আছে ("সম্পদ" স্তরে দেখো)। তার ওপর
@@ -1108,7 +1147,12 @@
           PUMP_CAP = 700,
           OUTLET_CAP = 800,
           TREAT_CAP = 1600;
-        const POWER_USE = { [T.PUMP]: 15, [T.TREAT]: 60, [T.INCIN]: 80, [T.AIRPORT]: 4 };
+        const POWER_USE = {
+          [T.PUMP]: 15,
+          [T.TREAT]: 60,
+          [T.INCIN]: 80,
+          [T.AIRPORT]: 4,
+        };
         const UPKEEP = {
           [T.POWER]: 80,
           [T.PUMP]: 40,
@@ -1365,12 +1409,15 @@
         }
         function apTiles(a) {
           const out = [];
-          for (let u = 0; u < AP_L; u++) for (let v = 0; v < AP_W; v++) out.push([...apTile(a, u, v), u, v]);
+          for (let u = 0; u < AP_L; u++)
+            for (let v = 0; v < AP_W; v++) out.push([...apTile(a, u, v), u, v]);
           return out;
         }
         function apFootprint(cx, cy, r) {
           // centred on the tile under the mouse
-          return r % 2 === 0 ? { x: cx - 6, y: cy - 1, r } : { x: cx - 1, y: cy - 6, r };
+          return r % 2 === 0
+            ? { x: cx - 6, y: cy - 1, r }
+            : { x: cx - 1, y: cy - 6, r };
         }
         function airportAt(i) {
           const x = i % W,
@@ -1392,12 +1439,16 @@
         }
         // why an airport cannot go here ("" = it can)
         function airportCheck(a) {
-          if (S.pop < AP_POP) return `বিমানবন্দরের জন্য জনসংখ্যা ${fmt(AP_POP)} লাগবে (এখন ${fmt(S.pop)})`;
+          if (S.pop < AP_POP)
+            return `বিমানবন্দরের জন্য জনসংখ্যা ${fmt(AP_POP)} লাগবে (এখন ${fmt(S.pop)})`;
           for (const [x, y] of apTiles(a)) {
-            if (x < 0 || y < 0 || x >= W || y >= H) return "বিমানবন্দর মানচিত্রের বাইরে চলে যাচ্ছে";
+            if (x < 0 || y < 0 || x >= W || y >= H)
+              return "বিমানবন্দর মানচিত্রের বাইরে চলে যাচ্ছে";
             const i = y * W + x;
-            if (!owned[plotOf(i)]) return "পুরো জায়গাটা কেনা এলাকার মধ্যে হতে হবে";
-            if (type[i] !== T.GROUND) return "১২×৩ ঘরের পুরো জায়গাটা খালি হতে হবে";
+            if (!owned[plotOf(i)])
+              return "পুরো জায়গাটা কেনা এলাকার মধ্যে হতে হবে";
+            if (type[i] !== T.GROUND)
+              return "১২×৩ ঘরের পুরো জায়গাটা খালি হতে হবে";
           }
           if (st.funds < COST.airport) return "তহবিল নেই";
           return "";
@@ -1699,16 +1750,40 @@
           bh0 = new Float32Array(N),
           bh1 = new Float32Array(N),
           bAx = new Uint8Array(N);
+        // level crossings, refreshed with the road network; crossClosed is set each frame while a train is near
+        let crossList = [],
+          barriersReady = false;
+        const crossClosed = new Uint8Array(N);
+        function computeCrossings() {
+          crossList = [];
+          for (let i = 0; i < N; i++) {
+            if (type[i] !== T.CROSS) continue;
+            const x = i % W,
+              y = (i / W) | 0,
+              rl = (X, Y) => X >= 0 && Y >= 0 && X < W && Y < H && isRl(type[Y * W + X]);
+            crossList.push({ i, x, y, railX: rl(x - 1, y) || rl(x + 1, y) });
+          }
+          if (barriersReady) drawBarriers(); // so new crossings show their arms even while paused
+        }
         function computeBridges() {
+          computeCrossings();
           bh0.fill(0);
           bh1.fill(0);
-          const wet = (X, Y) => (X >= 0 && Y >= 0 && X < W && Y < H ? terrain[Y * W + X] : riverAt(X, Y));
+          const wet = (X, Y) =>
+            X >= 0 && Y >= 0 && X < W && Y < H
+              ? terrain[Y * W + X]
+              : riverAt(X, Y);
           for (let i = 0; i < N; i++) {
             const t = type[i];
             if (!terrain[i] || !(isRd(t) || isRl(t))) continue;
             const x = i % W,
               y = (i / W) | 0,
-              same = (X, Y) => X >= 0 && Y >= 0 && X < W && Y < H && (isRd(t) ? isRd(type[Y * W + X]) : isRl(type[Y * W + X]));
+              same = (X, Y) =>
+                X >= 0 &&
+                Y >= 0 &&
+                X < W &&
+                Y < H &&
+                (isRd(t) ? isRd(type[Y * W + X]) : isRl(type[Y * W + X]));
             const alongX = !(same(x, y - 1) || same(x, y + 1)),
               dx = alongX ? 1 : 0,
               dz = alongX ? 0 : 1;
@@ -1716,7 +1791,8 @@
               b = 0;
             while (a < 12 && wet(x - dx * (a + 1), y - dz * (a + 1))) a++;
             while (b < 12 && wet(x + dx * (b + 1), y + dz * (b + 1))) b++;
-            const hAt = (u) => Math.min(BRIDGE_H, BRIDGE_K * Math.min(u + a, 1 + b - u));
+            const hAt = (u) =>
+              Math.min(BRIDGE_H, BRIDGE_K * Math.min(u + a, 1 + b - u));
             bh0[i] = hAt(0);
             bh1[i] = hAt(1);
             bAx[i] = alongX ? 1 : 0;
@@ -1839,7 +1915,8 @@
             else if (t === T.DUMP)
               spread(i, 3, 0.25 + (0.25 * fill[i]) / DUMP_STORE, poll);
             else if (t === T.OUTLET) spread(i, 3, 0.2, poll);
-            else if (t === T.AIRPORT) spread(i, 3, 0.025, poll); // aircraft noise
+            else if (t === T.AIRPORT)
+              spread(i, 3, 0.025, poll); // aircraft noise
             else if (t === T.PARK) {
               spread(i, 2, -0.12, poll);
               spread(i, 3, 0.2, lv);
@@ -2108,12 +2185,20 @@
             const L = lvl[i];
             if (!L || !isZone(type[i])) continue;
             built++;
-            if (!powered[i] || (L > 1 && !watered[i]) || (L > 2 && !sewered[i]) || trash[i] > TRASH_BAD) troubled++;
+            if (
+              !powered[i] ||
+              (L > 1 && !watered[i]) ||
+              (L > 2 && !sewered[i]) ||
+              trash[i] > TRASH_BAD
+            )
+              troubled++;
           }
           const collect = built ? 1 - (0.5 * troubled) / built : 1;
           S.collect = collect;
           S.troubled = troubled;
-          ledger.inc = Math.round((pop * 0.018 + jobs * 0.013) * st.tax * collect);
+          ledger.inc = Math.round(
+            (pop * 0.018 + jobs * 0.013) * st.tax * collect,
+          );
           // running the city (offices, staff) costs more as it grows
           ledger.admin = Math.round(pop * 0.08);
           ledger.up = Math.round(roads * 0.4 + up + ledger.admin);
@@ -2133,7 +2218,10 @@
           for (let i = 0; i < N; i++) {
             const x = i % W,
               y = (i / W) | 0;
-            if (isRl(type[i]) && (x === 0 || y === 0 || x === W - 1 || y === H - 1)) {
+            if (
+              isRl(type[i]) &&
+              (x === 0 || y === 0 || x === W - 1 || y === H - 1)
+            ) {
               railConn[i] = 1;
               q.push(i);
             }
@@ -2178,14 +2266,23 @@
                 pst.push(i);
               } else pOff++;
             } else if (t === T.FSTN) railConn[i] ? fOn++ : fOff++;
-            else if ((t === T.RAIL || t === T.CROSS) && owned[plotOf(i)]) track++;
+            else if ((t === T.RAIL || t === T.CROSS) && owned[plotOf(i)])
+              track++;
             else if (t === T.FERRY) {
               ferries++; // the river always reaches the edge of the map, so ghats and ports are always connected
               pst.push(i);
-              portList.push({ x: (i % W) + 0.5, z: ((i / W) | 0) + 0.5, kind: "launch" });
+              portList.push({
+                x: (i % W) + 0.5,
+                z: ((i / W) | 0) + 0.5,
+                kind: "launch",
+              });
             } else if (t === T.PORT) {
               ports++;
-              portList.push({ x: (i % W) + 0.5, z: ((i / W) | 0) + 0.5, kind: "cargo" });
+              portList.push({
+                x: (i % W) + 0.5,
+                z: ((i / W) | 0) + 0.5,
+                kind: "cargo",
+              });
               if (!nb(i).some((j) => isRd(type[j]))) portsNoRoad++;
             }
           }
@@ -2209,7 +2306,8 @@
               riders += t === T.R ? CAP[3][lvl[i]] : CAP[4][lvl[i]] * 0.5;
             }
           for (let i = 0; i < N; i++) {
-            if (!((type[i] === T.FSTN && railConn[i]) || type[i] === T.PORT)) continue;
+            if (!((type[i] === T.FSTN && railConn[i]) || type[i] === T.PORT))
+              continue;
             const dist = new Map(),
               rq = [];
             for (const j of nb(i))
@@ -2239,7 +2337,9 @@
           for (let i = 0; i < N; i++) {
             if (!fCov[i] || !lvl[i]) continue;
             const s = specOf(i);
-            freight += s ? lvl[i] * SPEC_VALUE[s] * 0.3 * specYield(i) : lvl[i] * 1.5;
+            freight += s
+              ? lvl[i] * SPEC_VALUE[s] * 0.3 * specYield(i)
+              : lvl[i] * 1.5;
           }
           // stations make the land around them more valuable; the tracks are a little noisy
           const nudge = (i, r, amt) => {
@@ -2257,7 +2357,8 @@
           };
           for (const s of pst) nudge(s, 4, 0.1);
           for (let i = 0; i < N; i++)
-            if ((type[i] === T.RAIL || type[i] === T.CROSS) && owned[plotOf(i)]) nudge(i, 1, -0.03);
+            if ((type[i] === T.RAIL || type[i] === T.CROSS) && owned[plotOf(i)])
+              nudge(i, 1, -0.03);
           ledger.rail = Math.round(riders * 0.05 + freight);
           ledger.up += Math.round(track * 0.5);
           // an airport works when its terminal side touches a road and it has power
@@ -2279,7 +2380,9 @@
               airWhy = !road ? "পাশে কোনো রাস্তা নেই" : "বিদ্যুৎ নেই";
             }
           }
-          const flyers = airOn ? Math.round((S.pop * 0.06 + S.cj * 0.05) * (1 + 0.3 * (airOn - 1))) : 0;
+          const flyers = airOn
+            ? Math.round((S.pop * 0.06 + S.cj * 0.05) * (1 + 0.3 * (airOn - 1)))
+            : 0;
           ledger.rail += flyers;
           if (airOn) {
             dem.C += 0.12; // visitors and business
@@ -2351,7 +2454,12 @@
               resAmt[i] = Math.min(FOREST_MAX, resAmt[i] + FOREST_REGROW);
             const s = specOf(i),
               L = lvl[i];
-            if (s >= RS.FOREST && L && powered[i] && !(st.unlimited && s >= RS.ORE)) {
+            if (
+              s >= RS.FOREST &&
+              L &&
+              powered[i] &&
+              !(st.unlimited && s >= RS.ORE)
+            ) {
               resAmt[i] = Math.max(0, resAmt[i] - SPEC_USE[s] * L);
               if (s >= RS.ORE && resAmt[i] <= 0) {
                 gone++;
@@ -2588,9 +2696,15 @@
             ]);
           if (S.airOff) out.push(["crit", `বিমানবন্দর বন্ধ: ${S.airWhy}।`]);
           else if (!airports.length && S.pop >= 8000)
-            out.push(["hint", "শহর বড় হয়েছে। বিমানবন্দর বানালে পর্যটক আর ব্যবসা আসবে (১২×৩ ঘরের খালি জায়গা লাগে)।"]);
+            out.push([
+              "hint",
+              "শহর বড় হয়েছে। বিমানবন্দর বানালে পর্যটক আর ব্যবসা আসবে (১২×৩ ঘরের খালি জায়গা লাগে)।",
+            ]);
           if (S.portsNoRoad)
-            out.push(["hint", `${bn(S.portsNoRoad)}টি নদীবন্দরের পাশে রাস্তা নেই, তাই মাল আসছে না।`]);
+            out.push([
+              "hint",
+              `${bn(S.portsNoRoad)}টি নদীবন্দরের পাশে রাস্তা নেই, তাই মাল আসছে না।`,
+            ]);
           if (S.pop > 3000 && !n(T.PSTN))
             out.push([
               "hint",
@@ -2602,8 +2716,14 @@
               "মালবাহী স্টেশন বসাও: কারখানা আর খনির মাল ট্রেনে রপ্তানি হলে আয় বাড়বে।",
             ]);
           else if ((S.fstnOn || S.ports) && !S.freight)
-            out.push(["hint", "মালবাহী স্টেশনের ৩০ ঘরের মধ্যে কোনো শিল্প নেই।"]);
-          if (ledger.inc + ledger.res + ledger.rail - ledger.up < 0 && st.funds >= 0)
+            out.push([
+              "hint",
+              "মালবাহী স্টেশনের ৩০ ঘরের মধ্যে কোনো শিল্প নেই।",
+            ]);
+          if (
+            ledger.inc + ledger.res + ledger.rail - ledger.up < 0 &&
+            st.funds >= 0
+          )
             out.push(["hint", "মাসিক হিসাব ঘাটতিতে চলছে।"]);
           if (st.tax >= 14)
             out.push([
@@ -2643,13 +2763,19 @@
 
         // put every ore, oil and coal deposit back to full (used when the "unlimited" rule is on)
         function refillMines() {
-          for (let i = 0; i < N; i++) if (res[i] >= RS.ORE) resAmt[i] = resMax[i];
+          for (let i = 0; i < N; i++)
+            if (res[i] >= RS.ORE) resAmt[i] = resMax[i];
           depl = { month: -99, n: 0 };
         }
         function drawMineRule() {
           document
             .querySelectorAll("#mineRule button")
-            .forEach((b) => b.setAttribute("aria-pressed", (b.dataset.m === "1") === st.unlimited));
+            .forEach((b) =>
+              b.setAttribute(
+                "aria-pressed",
+                (b.dataset.m === "1") === st.unlimited,
+              ),
+            );
           $("mineNote").textContent = st.unlimited
             ? "লোহা, তেল আর কয়লার খনি কখনো ফুরাবে না।"
             : "প্রতিটা খনি প্রতি মাসে স্তর × ১০ টন তোলে। মজুদ শেষ হলে খনিটা সাধারণ কারখানা হয়ে যায়, তখন নতুন মজুদ খুঁজতে হয়।";
@@ -2660,8 +2786,15 @@
             refillMines();
             syncStages();
             markAll();
-            notify("এখন থেকে খনিজ সম্পদ অফুরন্ত। ফুরিয়ে যাওয়া খনিগুলোও আবার ভরে গেছে।", "ok");
-          } else notify("খনিজ এখন ফুরায়: বড় খনি দ্রুত ফুরাবে। মজুদ দেখতে খনির ওপর মাউস রাখো।", "ok");
+            notify(
+              "এখন থেকে খনিজ সম্পদ অফুরন্ত। ফুরিয়ে যাওয়া খনিগুলোও আবার ভরে গেছে।",
+              "ok",
+            );
+          } else
+            notify(
+              "খনিজ এখন ফুরায়: বড় খনি দ্রুত ফুরাবে। মজুদ দেখতে খনির ওপর মাউস রাখো।",
+              "ok",
+            );
           drawMineRule();
           recompute();
           updateUI();
@@ -2676,11 +2809,25 @@
           if (!isZone(t) || !owned[plotOf(i)]) return why;
           if (!roadNear[i]) why.push("২ ঘরের মধ্যে রাস্তা নেই");
           if (!powered[i])
-            why.push(!S.cap ? "শহরে বিদ্যুৎকেন্দ্র নেই" : S.use > S.cap ? "বিদ্যুৎ ঘাটতি চলছে" : "বিদ্যুৎ লাইন এখানে পৌঁছায়নি");
+            why.push(
+              !S.cap
+                ? "শহরে বিদ্যুৎকেন্দ্র নেই"
+                : S.use > S.cap
+                  ? "বিদ্যুৎ ঘাটতি চলছে"
+                  : "বিদ্যুৎ লাইন এখানে পৌঁছায়নি",
+            );
           if (L >= 1 && !watered[i])
-            why.push(S.wuse > S.wcap ? "পানির ঘাটতি, তাই স্তর ১-এর ওপরে উঠবে না" : "পানির লাইন নেই, তাই স্তর ১-এর ওপরে উঠবে না");
+            why.push(
+              S.wuse > S.wcap
+                ? "পানির ঘাটতি, তাই স্তর ১-এর ওপরে উঠবে না"
+                : "পানির লাইন নেই, তাই স্তর ১-এর ওপরে উঠবে না",
+            );
           else if (L >= 2 && !sewered[i])
-            why.push(S.suse > S.scap ? "পয়ঃনিষ্কাশনের ঘাটতি, তাই স্তর ২-এর ওপরে উঠবে না" : "পয়ঃনিষ্কাশনের লাইন নেই, তাই স্তর ২-এর ওপরে উঠবে না");
+            why.push(
+              S.suse > S.scap
+                ? "পয়ঃনিষ্কাশনের ঘাটতি, তাই স্তর ২-এর ওপরে উঠবে না"
+                : "পয়ঃনিষ্কাশনের লাইন নেই, তাই স্তর ২-এর ওপরে উঠবে না",
+            );
           if (L < 3) {
             const d = t === T.R ? dem.R : t === T.C ? dem.C : dem.I;
             if (d <= 0)
@@ -2691,13 +2838,24 @@
                     ? "বাণিজ্যিক চাহিদা নেই (আরও মানুষ লাগবে)"
                     : "শিল্প চাহিদা নেই (আরও মানুষ লাগবে)",
               );
-            if (t === T.R && poll[i] > 0.3) why.push("দূষণ বেশি, মানুষ এখানে থাকতে চায় না");
-            if (t !== T.I && L === 2 && watered[i] && sewered[i] && lv[i] <= 0.55)
-              why.push(`স্তর ৩-এর জন্য জমির মান ৫৫%-এর বেশি লাগে (এখন ${bn(Math.round(lv[i] * 100))}%): পার্ক বা নদী কাছে আনো`);
+            if (t === T.R && poll[i] > 0.3)
+              why.push("দূষণ বেশি, মানুষ এখানে থাকতে চায় না");
+            if (
+              t !== T.I &&
+              L === 2 &&
+              watered[i] &&
+              sewered[i] &&
+              lv[i] <= 0.55
+            )
+              why.push(
+                `স্তর ৩-এর জন্য জমির মান ৫৫%-এর বেশি লাগে (এখন ${bn(Math.round(lv[i] * 100))}%): পার্ক বা নদী কাছে আনো`,
+              );
           }
-          if (trash[i] > TRASH_BAD) why.push("ময়লা জমে আছে, ময়লার গাড়ি পৌঁছায় না");
+          if (trash[i] > TRASH_BAD)
+            why.push("ময়লা জমে আছে, ময়লার গাড়ি পৌঁছায় না");
           if (s === RS.FARM && poll[i] > 0.2) why.push("দূষণে ফসল কম হচ্ছে");
-          if (s === RS.FOREST && specYield(i) < 0.6) why.push("বনে গাছ কমে গেছে, আবার গজাতে সময় লাগবে");
+          if (s === RS.FOREST && specYield(i) < 0.6)
+            why.push("বনে গাছ কমে গেছে, আবার গজাতে সময় লাগবে");
           return why;
         }
         // short pop-up messages over the map for things that just happened
@@ -2736,13 +2894,33 @@
               `${bn(gone)}টি খনির মজুদ ফুরিয়ে গেছে, ওগুলো এখন সাধারণ কারখানা। খনি যত বড় (স্তর বেশি), তত দ্রুত ফুরায়। না চাইলে "খেলার নিয়ম"-এ খনিজ অফুরন্ত করো।`,
             );
           if (!p) return;
-          if (f.pow && !p.pow) notify(`বিদ্যুৎ ঘাটতি শুরু হয়েছে (চাহিদা ${fmt(S.use)}, ক্ষমতা ${fmt(S.cap)})। কিছু ভবন বিদ্যুৎ পাচ্ছে না, তারা ছোট হয়ে যাবে।`);
-          if (f.wat && !p.wat) notify(`পানির ঘাটতি শুরু হয়েছে (চাহিদা ${fmt(S.wuse)}, সরবরাহ ${fmt(S.wcap)})। আরেকটা পাম্প বসাও।`);
-          if (f.sew && !p.sew) notify(`পয়ঃনিষ্কাশনের ঘাটতি শুরু হয়েছে (চাহিদা ${fmt(S.suse)}, ক্ষমতা ${fmt(S.scap)})।`);
-          if (f.trash && !p.trash) notify(`ময়লা জমতে শুরু করেছে: মাসে ${fmt(S.tgen)} তৈরি হয়, তোলা যায় ${fmt(S.tcap)}।`);
-          if (f.full > p.full) notify("একটা ভাগাড় পুরো ভরে গেছে, ওটা আর ময়লা নেবে না। নতুন ভাগাড় বা চুল্লি বানাও।");
-          if (f.broke && !p.broke) notify("তহবিল ঋণাত্মক হয়ে গেছে! কর বাড়াও বা খরচ কমাও।");
-          if (f.plot && !p.plot) notify('নতুন এলাকা কেনা যাবে! "এলাকা কেনো" টুল দিয়ে পাশের এলাকা কেনো।', "ok");
+          if (f.pow && !p.pow)
+            notify(
+              `বিদ্যুৎ ঘাটতি শুরু হয়েছে (চাহিদা ${fmt(S.use)}, ক্ষমতা ${fmt(S.cap)})। কিছু ভবন বিদ্যুৎ পাচ্ছে না, তারা ছোট হয়ে যাবে।`,
+            );
+          if (f.wat && !p.wat)
+            notify(
+              `পানির ঘাটতি শুরু হয়েছে (চাহিদা ${fmt(S.wuse)}, সরবরাহ ${fmt(S.wcap)})। আরেকটা পাম্প বসাও।`,
+            );
+          if (f.sew && !p.sew)
+            notify(
+              `পয়ঃনিষ্কাশনের ঘাটতি শুরু হয়েছে (চাহিদা ${fmt(S.suse)}, ক্ষমতা ${fmt(S.scap)})।`,
+            );
+          if (f.trash && !p.trash)
+            notify(
+              `ময়লা জমতে শুরু করেছে: মাসে ${fmt(S.tgen)} তৈরি হয়, তোলা যায় ${fmt(S.tcap)}।`,
+            );
+          if (f.full > p.full)
+            notify(
+              "একটা ভাগাড় পুরো ভরে গেছে, ওটা আর ময়লা নেবে না। নতুন ভাগাড় বা চুল্লি বানাও।",
+            );
+          if (f.broke && !p.broke)
+            notify("তহবিল ঋণাত্মক হয়ে গেছে! কর বাড়াও বা খরচ কমাও।");
+          if (f.plot && !p.plot)
+            notify(
+              'নতুন এলাকা কেনা যাবে! "এলাকা কেনো" টুল দিয়ে পাশের এলাকা কেনো।',
+              "ok",
+            );
         }
 
         /* ---------- UI ---------- */
@@ -2762,11 +2940,16 @@
           n.textContent = (net >= 0 ? "+" : "") + taka(net);
           n.className = net < 0 ? "neg" : "pos";
           $("lInc").textContent =
-            taka(ledger.inc) + (S.collect < 0.995 ? ` · আদায় ${bn(Math.round(S.collect * 100))}%` : "");
+            taka(ledger.inc) +
+            (S.collect < 0.995
+              ? ` · আদায় ${bn(Math.round(S.collect * 100))}%`
+              : "");
           $("lInc").style.color = S.collect < 0.85 ? "var(--warn)" : "";
           $("lUp").textContent = taka(ledger.up);
           $("lRail").textContent =
-            S.pstnOn + S.fstnOn + S.ports + S.ferries + S.airOn ? `${taka(ledger.rail)} · ${fmt(S.riders)} যাত্রী` : "—";
+            S.pstnOn + S.fstnOn + S.ports + S.ferries + S.airOn
+              ? `${taka(ledger.rail)} · ${fmt(S.riders)} যাত্রী`
+              : "—";
           $("lRes").textContent = S.nSpec
             ? `${taka(ledger.res)} · ${bn(S.nSpec)}টি`
             : "—";
@@ -2776,7 +2959,8 @@
             : (S.mineMax
                 ? bn(Math.round((S.mineAmt / S.mineMax) * 100)) + "%"
                 : "—") + (S.resGone ? ` · ${bn(S.resGone)}টি ফুরিয়েছে` : "");
-          m.style.color = !st.unlimited && (S.resGone || S.resLow) ? "var(--warn)" : "";
+          m.style.color =
+            !st.unlimited && (S.resGone || S.resLow) ? "var(--warn)" : "";
           const pair = (id, a, b) => {
             const e = $(id);
             e.textContent = `${fmt(a)} / ${fmt(b)}`;
@@ -2817,6 +3001,7 @@
           );
         function setTool(t) {
           st.tool = t;
+          $("apRotate").hidden = t !== "airport";
           $("cv").classList.toggle("panning", t === "pan");
           overlayDirty = true;
           document
@@ -2864,10 +3049,16 @@
           );
         document
           .querySelectorAll("#mineRule button")
-          .forEach((b) => b.addEventListener("click", () => setUnlimited(b.dataset.m === "1")));
+          .forEach((b) =>
+            b.addEventListener("click", () =>
+              setUnlimited(b.dataset.m === "1"),
+            ),
+          );
         document
           .querySelectorAll("#fps button")
-          .forEach((b) => b.addEventListener("click", () => setFps(+b.dataset.f)));
+          .forEach((b) =>
+            b.addEventListener("click", () => setFps(+b.dataset.f)),
+          );
         $("tax").addEventListener("input", (e) => {
           st.tax = +e.target.value;
           recompute(); // the whole chain, so transport boosts and track upkeep stay in the books
@@ -2959,7 +3150,7 @@
                 }
                 drawSlots();
               };
-              d ? confirmClick(bSave, "সেভ", go) : go();   // only ask when it would overwrite
+              d ? confirmClick(bSave, "সেভ", go) : go(); // only ask when it would overwrite
             });
             bLoad.addEventListener("click", () =>
               confirmClick(bLoad, "খোলো", () => {
@@ -3047,7 +3238,8 @@
         function railStraight(i) {
           const x = i % W,
             y = (i / W) | 0,
-            at = (X, Y) => X >= 0 && Y >= 0 && X < W && Y < H && isRl(type[Y * W + X]);
+            at = (X, Y) =>
+              X >= 0 && Y >= 0 && X < W && Y < H && isRl(type[Y * W + X]);
           const e = at(x + 1, y),
             w = at(x - 1, y),
             n = at(x, y - 1),
@@ -3060,10 +3252,16 @@
         let undoTx = null;
         function beginTx() {
           if (undoTx) endTx();
-          undoTx = { tiles: new Map(), spent: 0, owned: owned.slice(), airports: airports.map((a) => ({ x: a.x, y: a.y, r: a.r })) };
+          undoTx = {
+            tiles: new Map(),
+            spent: 0,
+            owned: owned.slice(),
+            airports: airports.map((a) => ({ x: a.x, y: a.y, r: a.r })),
+          };
         }
         function remember(i) {
-          if (undoTx && !undoTx.tiles.has(i)) undoTx.tiles.set(i, [type[i], lvl[i], trash[i], fill[i]]);
+          if (undoTx && !undoTx.tiles.has(i))
+            undoTx.tiles.set(i, [type[i], lvl[i], trash[i], fill[i]]);
         }
         function spend(c) {
           st.funds -= c;
@@ -3072,7 +3270,11 @@
         function endTx() {
           const tx = undoTx;
           undoTx = null;
-          if (!tx || (!tx.tiles.size && tx.owned.every((v, k) => v === owned[k]))) return;
+          if (
+            !tx ||
+            (!tx.tiles.size && tx.owned.every((v, k) => v === owned[k]))
+          )
+            return;
           undoStack.push(tx);
           if (undoStack.length > 60) undoStack.shift();
           drawUndo();
@@ -3097,7 +3299,9 @@
           updateUI();
           saveSoon();
           drawUndo();
-          flash(`আগের অবস্থায় ফেরানো হলো${tx.spent > 0 ? ` · ${taka(tx.spent)} ফেরত` : ""}`);
+          flash(
+            `আগের অবস্থায় ফেরানো হলো${tx.spent > 0 ? ` · ${taka(tx.spent)} ফেরত` : ""}`,
+          );
         }
         function clearUndo() {
           undoStack.length = 0;
@@ -3116,18 +3320,33 @@
           const i = y * W + x,
             tool = st.tool,
             c = canPlace(i, tool);
-          if (tool === "bulldoze" && type[i] === T.AIRPORT && owned[plotOf(i)]) {
+          if (
+            tool === "bulldoze" &&
+            type[i] === T.AIRPORT &&
+            owned[plotOf(i)]
+          ) {
             const a = airportAt(i); // the whole airport goes at once, but only after a second click
             if (a) {
               const now = performance.now();
-              if (apConfirm && apConfirm.a === a && apConfirm.tx !== undoTx && now - apConfirm.t < 4000) {
+              if (
+                apConfirm &&
+                apConfirm.a === a &&
+                apConfirm.tx !== undoTx &&
+                now - apConfirm.t < 4000
+              ) {
                 apConfirm = null;
                 removeAirport(a);
                 spend(COST.bulldoze);
                 changed = true;
-              } else if (!apConfirm || apConfirm.a !== a || apConfirm.tx !== undoTx) {
+              } else if (
+                !apConfirm ||
+                apConfirm.a !== a ||
+                apConfirm.tx !== undoTx
+              ) {
                 apConfirm = { a, t: now, tx: undoTx };
-                flash("পুরো বিমানবন্দর ভাঙবে! নিশ্চিত হলে ৪ সেকেন্ডের মধ্যে আবার ক্লিক করো");
+                flash(
+                  "পুরো বিমানবন্দর ভাঙবে! নিশ্চিত হলে ৪ সেকেন্ডের মধ্যে আবার ক্লিক করো",
+                );
               }
               return;
             }
@@ -3237,7 +3456,9 @@
         }
         const when = (t) => {
           const d = new Date(t);
-          return bn(`${d.getDate()}/${d.getMonth() + 1} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`);
+          return bn(
+            `${d.getDate()}/${d.getMonth() + 1} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`,
+          );
         };
         let lastAutoSave = 0,
           unsavedDays = false; // days have passed since the last save
@@ -3275,8 +3496,20 @@
               tr = new Float32Array(dec(d.trash).buffer),
               fi = new Float32Array(dec(d.fill).buffer),
               ra = d.res ? new Float32Array(dec(d.res).buffer) : null;
-            if (ty.length !== N || lv2.length !== N || tr.length !== N || fi.length !== N) return false;
-            if (!Array.isArray(d.owned) || d.owned.length !== PW * PW || !Number.isFinite(d.funds) || !Number.isFinite(d.month)) return false;
+            if (
+              ty.length !== N ||
+              lv2.length !== N ||
+              tr.length !== N ||
+              fi.length !== N
+            )
+              return false;
+            if (
+              !Array.isArray(d.owned) ||
+              d.owned.length !== PW * PW ||
+              !Number.isFinite(d.funds) ||
+              !Number.isFinite(d.month)
+            )
+              return false;
             makeTerrain();
             type.set(ty);
             if (!ty.some((v) => v >= T.RAIL && v <= T.FSTN)) layMainLine(); // a save from before the railway
@@ -3287,13 +3520,24 @@
             if (ra && ra.length === N) resAmt.set(ra);
             st.funds = d.funds;
             st.month = d.month;
-            st.day = Number.isInteger(d.day) && d.day >= 0 && d.day < 30 ? d.day : 0;
+            st.day =
+              Number.isInteger(d.day) && d.day >= 0 && d.day < 30 ? d.day : 0;
             st.tax = d.tax;
             st.unlimited = d.unlimited !== false;
             clearUndo();
             airports = (Array.isArray(d.airports) ? d.airports : [])
               .map(([x, y, r]) => ({ x, y, r }))
-              .filter((a) => apTiles(a).every(([x, y]) => x >= 0 && y >= 0 && x < W && y < H && type[y * W + x] === T.AIRPORT));
+              .filter((a) =>
+                apTiles(a).every(
+                  ([x, y]) =>
+                    x >= 0 &&
+                    y >= 0 &&
+                    x < W &&
+                    y < H &&
+                    type[y * W + x] === T.AIRPORT,
+                ),
+              );
+            for (let i = 0; i < N; i++) if (type[i] === T.AIRPORT && !airportAt(i)) type[i] = T.GROUND;
             if (st.unlimited) refillMines();
             drawMineRule();
             refreshAll();
@@ -3557,7 +3801,11 @@
           box: new THREE.BoxGeometry(1, 1, 1).translate(0, 0.5, 0),
           prism: prismGeom(),
           cyl: new THREE.CylinderGeometry(1, 1, 1, 14).translate(0, 0.5, 0),
-          trunk: new THREE.CylinderGeometry(1, 1, 1, 5, 1, true).translate(0, 0.5, 0),
+          trunk: new THREE.CylinderGeometry(1, 1, 1, 5, 1, true).translate(
+            0,
+            0.5,
+            0,
+          ),
           tower: new THREE.LatheGeometry(
             [
               [1, 0],
@@ -3597,7 +3845,12 @@
         // one set of growable typed arrays, reused for every chunk build (no per-build garbage)
         const SCRATCH = {};
         for (const k in KINDS)
-          SCRATCH[k] = { n: 0, m: new Float32Array(1024 * 16), c: new Float32Array(1024 * 3), w: new Float32Array(1024 * 4) };
+          SCRATCH[k] = {
+            n: 0,
+            m: new Float32Array(1024 * 16),
+            c: new Float32Array(1024 * 3),
+            w: new Float32Array(1024 * 4),
+          };
         function newParts() {
           for (const k in SCRATCH) SCRATCH[k].n = 0;
           return SCRATCH;
@@ -3606,10 +3859,22 @@
         function setM(a, o, cx, y0, cz, sx, sy, sz, rot) {
           const c = Math.cos(rot || 0),
             s = Math.sin(rot || 0);
-          a[o] = c * sx; a[o + 1] = 0; a[o + 2] = -s * sx; a[o + 3] = 0;
-          a[o + 4] = 0; a[o + 5] = sy; a[o + 6] = 0; a[o + 7] = 0;
-          a[o + 8] = s * sz; a[o + 9] = 0; a[o + 10] = c * sz; a[o + 11] = 0;
-          a[o + 12] = cx; a[o + 13] = y0; a[o + 14] = cz; a[o + 15] = 1;
+          a[o] = c * sx;
+          a[o + 1] = 0;
+          a[o + 2] = -s * sx;
+          a[o + 3] = 0;
+          a[o + 4] = 0;
+          a[o + 5] = sy;
+          a[o + 6] = 0;
+          a[o + 7] = 0;
+          a[o + 8] = s * sz;
+          a[o + 9] = 0;
+          a[o + 10] = c * sz;
+          a[o + 11] = 0;
+          a[o + 12] = cx;
+          a[o + 13] = y0;
+          a[o + 14] = cz;
+          a[o + 15] = 1;
         }
         const MTMP = new Float32Array(16); // what mY returns is only valid until its next call
         function mY(cx, y0, cz, sx, sy, sz, rot) {
@@ -3632,10 +3897,15 @@
           if ((a.n + 1) * 16 > a.m.length) grow(a);
           a.m.set(m, a.n * 16);
           const o = a.n * 3;
-          a.c[o] = c.r; a.c[o + 1] = c.g; a.c[o + 2] = c.b;
+          a.c[o] = c.r;
+          a.c[o + 1] = c.g;
+          a.c[o + 2] = c.b;
           if (KINDS[k].win) {
             const q = a.n * 4;
-            a.w[q] = w ? w[0] : 0; a.w[q + 1] = w ? w[1] : 0.3; a.w[q + 2] = w ? w[2] : 0.2; a.w[q + 3] = w ? w[3] : 0;
+            a.w[q] = w ? w[0] : 0;
+            a.w[q + 1] = w ? w[1] : 0.3;
+            a.w[q + 2] = w ? w[2] : 0.2;
+            a.w[q + 3] = w ? w[3] : 0;
           }
           a.n++;
         }
@@ -4841,11 +5111,37 @@
           }
           if (type[i] === T.CROSS) {
             drawRail(x, y, i, true); // rails across the asphalt, with barrier posts
-            const rl = (X, Y) => X >= 0 && Y >= 0 && X < W && Y < H && isRl(type[Y * W + X]);
-            const pts = rl(x - 1, y) || rl(x + 1, y) ? [[0.1, 0.06], [0.9, 0.94]] : [[0.06, 0.1], [0.94, 0.9]];
+            const rl = (X, Y) =>
+              X >= 0 && Y >= 0 && X < W && Y < H && isRl(type[Y * W + X]);
+            const pts =
+              rl(x - 1, y) || rl(x + 1, y)
+                ? [
+                    [0.1, 0.06],
+                    [0.9, 0.94],
+                  ]
+                : [
+                    [0.06, 0.1],
+                    [0.94, 0.9],
+                  ];
             for (const [px, pz] of pts) {
-              box(x + px - 0.015, y + pz - 0.015, x + px + 0.015, y + pz + 0.015, 0.03, 0.3, K.white);
-              box(x + px - 0.018, y + pz - 0.018, x + px + 0.018, y + pz + 0.018, 0.22, 0.27, K.red);
+              box(
+                x + px - 0.015,
+                y + pz - 0.015,
+                x + px + 0.015,
+                y + pz + 0.015,
+                0.03,
+                0.3,
+                K.white,
+              );
+              box(
+                x + px - 0.018,
+                y + pz - 0.018,
+                x + px + 0.018,
+                y + pz + 0.018,
+                0.22,
+                0.27,
+                K.red,
+              );
             }
             return 0.3;
           }
@@ -4862,7 +5158,9 @@
         // Outside the map only the national line exists, so edge tiles keep running into the countryside.
         function drawRail(x, y, i, onRoad) {
           const isL = (X, Y) =>
-            X >= 0 && Y >= 0 && X < W && Y < H ? isRl(type[Y * W + X]) : Y === RAIL_Y;
+            X >= 0 && Y >= 0 && X < W && Y < H
+              ? isRl(type[Y * W + X])
+              : Y === RAIL_Y;
           const n = isL(x, y - 1),
             s2 = isL(x, y + 1),
             w = isL(x - 1, y),
@@ -4872,7 +5170,11 @@
           if (s2) arms.push([0, 1]);
           if (w) arms.push([-1, 0]);
           if (e) arms.push([1, 0]);
-          if (!arms.length) arms = [[-1, 0], [1, 0]];
+          if (!arms.length)
+            arms = [
+              [-1, 0],
+              [1, 0],
+            ];
           const y0 = onRoad ? 0.04 : 0.03;
           if (!onRoad && i >= 0 && terrain[i]) return drawDeck(x, y, i, true);
           const cx = x + 0.5,
@@ -4882,13 +5184,49 @@
             if (!onRoad) {
               const ex = cx + dx * 0.5,
                 ez = cz + dz * 0.5;
-              if (along) flat(Math.min(cx - dx * 0.24, ex), cz - 0.24, Math.max(cx - dx * 0.24, ex), cz + 0.24, 0, 0.03, K.ballast);
-              else flat(cx - 0.24, Math.min(cz - dz * 0.24, ez), cx + 0.24, Math.max(cz - dz * 0.24, ez), 0, 0.03, K.ballast);
+              if (along)
+                flat(
+                  Math.min(cx - dx * 0.24, ex),
+                  cz - 0.24,
+                  Math.max(cx - dx * 0.24, ex),
+                  cz + 0.24,
+                  0,
+                  0.03,
+                  K.ballast,
+                );
+              else
+                flat(
+                  cx - 0.24,
+                  Math.min(cz - dz * 0.24, ez),
+                  cx + 0.24,
+                  Math.max(cz - dz * 0.24, ez),
+                  0,
+                  0.03,
+                  K.ballast,
+                );
               for (const f of [0.12, 0.37]) {
                 const sx = cx + dx * f,
                   sz = cz + dz * f;
-                if (along) flat(sx - 0.03, cz - 0.18, sx + 0.03, cz + 0.18, 0.03, 0.045, K.sleeper);
-                else flat(cx - 0.18, sz - 0.03, cx + 0.18, sz + 0.03, 0.03, 0.045, K.sleeper);
+                if (along)
+                  flat(
+                    sx - 0.03,
+                    cz - 0.18,
+                    sx + 0.03,
+                    cz + 0.18,
+                    0.03,
+                    0.045,
+                    K.sleeper,
+                  );
+                else
+                  flat(
+                    cx - 0.18,
+                    sz - 0.03,
+                    cx + 0.18,
+                    sz + 0.03,
+                    0.03,
+                    0.045,
+                    K.sleeper,
+                  );
               }
             }
             const a = cx - dx * 0.11,
@@ -4896,8 +5234,26 @@
               c = cz - dz * 0.11,
               d = cz + dz * 0.5;
             for (const o of [-0.1, 0.1]) {
-              if (along) flat(Math.min(a, b), cz + o - 0.012, Math.max(a, b), cz + o + 0.012, y0 + 0.015, y0 + 0.04, K.railSteel);
-              else flat(cx + o - 0.012, Math.min(c, d), cx + o + 0.012, Math.max(c, d), y0 + 0.015, y0 + 0.04, K.railSteel);
+              if (along)
+                flat(
+                  Math.min(a, b),
+                  cz + o - 0.012,
+                  Math.max(a, b),
+                  cz + o + 0.012,
+                  y0 + 0.015,
+                  y0 + 0.04,
+                  K.railSteel,
+                );
+              else
+                flat(
+                  cx + o - 0.012,
+                  Math.min(c, d),
+                  cx + o + 0.012,
+                  Math.max(c, d),
+                  y0 + 0.015,
+                  y0 + 0.04,
+                  K.railSteel,
+                );
             }
           }
           return 0.1;
@@ -4918,17 +5274,59 @@
             add(
               kind || "flat",
               ax
-                ? [L, hb - ha, 0, 0, 0, th, 0, 0, 0, 0, Wd, 0, x + (a0 + a1) / 2, oy, y + (c0 + c1) / 2, 1]
-                : [Wd, 0, 0, 0, 0, th, 0, 0, 0, hb - ha, L, 0, x + (c0 + c1) / 2, oy, y + (a0 + a1) / 2, 1],
+                ? [
+                    L,
+                    hb - ha,
+                    0,
+                    0,
+                    0,
+                    th,
+                    0,
+                    0,
+                    0,
+                    0,
+                    Wd,
+                    0,
+                    x + (a0 + a1) / 2,
+                    oy,
+                    y + (c0 + c1) / 2,
+                    1,
+                  ]
+                : [
+                    Wd,
+                    0,
+                    0,
+                    0,
+                    0,
+                    th,
+                    0,
+                    0,
+                    0,
+                    hb - ha,
+                    L,
+                    0,
+                    x + (c0 + c1) / 2,
+                    oy,
+                    y + (a0 + a1) / 2,
+                    1,
+                  ],
               col,
             );
           };
           S(0, 1, 0, 1, -0.08, 0, K.concrete, "box"); // deck
           if (Math.min(h0, h1) > 0.12 && (x + y) % 2 === 0)
-            cyl(x + 0.5, y + 0.5, 0.08, -0.36, Math.min(h0, h1) - 0.08, K.concrete); // pier
+            cyl(
+              x + 0.5,
+              y + 0.5,
+              0.08,
+              -0.36,
+              Math.min(h0, h1) - 0.08,
+              K.concrete,
+            ); // pier
           if (rail) {
             S(0, 1, 0.26, 0.74, 0, 0.03, K.ballast);
-            for (const a of [0.1, 0.35, 0.6, 0.85]) S(a, a + 0.06, 0.32, 0.68, 0.03, 0.045, K.sleeper);
+            for (const a of [0.1, 0.35, 0.6, 0.85])
+              S(a, a + 0.06, 0.32, 0.68, 0.03, 0.045, K.sleeper);
             S(0, 1, 0.388, 0.412, 0.045, 0.07, K.railSteel);
             S(0, 1, 0.588, 0.612, 0.045, 0.07, K.railSteel);
             S(0, 1, 0.08, 0.12, 0, 0.2, K.steel, "box"); // girders
@@ -4957,19 +5355,49 @@
           const d = riverSide(x, y),
             h = hash(i),
             bankX = d[1] !== 0,
-            R = (u0, u1, v0, v1, y0, y1, c, w) => box(...bankRect(x, y, d, u0, u1, v0, v1), y0, y1, c, w);
+            R = (u0, u1, v0, v1, y0, y1, c, w) =>
+              box(...bankRect(x, y, d, u0, u1, v0, v1), y0, y1, c, w);
           R(0, 1, 0, 1.3, -0.12, 0.03, K.concrete); // quay reaching out over the water
-          R(0.08, 0.92, 0.05, 0.42, 0.03, 0.38, pick(PAL.shed, h), [1, 0.35, 0.2, i]); // warehouse
-          prism(...bankRect(x, y, d, 0.05, 0.95, 0.03, 0.44), 0.38, 0.12, pick(PAL.metal, h), bankX);
-          for (const u of [0.3, 0.66]) for (const v of [0.55, 0.98]) R(u, u + 0.05, v, v + 0.05, 0.03, 0.95, K.yellow); // crane legs
+          R(0.08, 0.92, 0.05, 0.42, 0.03, 0.38, pick(PAL.shed, h), [
+            1,
+            0.35,
+            0.2,
+            i,
+          ]); // warehouse
+          prism(
+            ...bankRect(x, y, d, 0.05, 0.95, 0.03, 0.44),
+            0.38,
+            0.12,
+            pick(PAL.metal, h),
+            bankX,
+          );
+          for (const u of [0.3, 0.66])
+            for (const v of [0.55, 0.98])
+              R(u, u + 0.05, v, v + 0.05, 0.03, 0.95, K.yellow); // crane legs
           R(0.3, 0.71, 0.55, 0.6, 0.88, 0.95, K.yellow);
           R(0.3, 0.71, 0.98, 1.03, 0.88, 0.95, K.yellow);
           R(0.46, 0.54, 0.4, 1.9, 0.95, 1.02, K.yellow); // boom out over the water
           R(0.44, 0.56, 0.36, 0.5, 0.86, 1.02, K.dark);
           R(0.47, 0.53, 1.5, 1.56, 0.62, 0.95, K.dark); // hook line
           R(0.08, 0.28, 0.62, 0.94, 0.03, 0.15, pick(PAL.container, h));
-          R(0.74, 0.94, 0.62, 0.94, 0.03, 0.15, pick(PAL.container, (h * 7) % 1));
-          R(0.74, 0.94, 0.62, 0.94, 0.15, 0.27, pick(PAL.container, (h * 13) % 1));
+          R(
+            0.74,
+            0.94,
+            0.62,
+            0.94,
+            0.03,
+            0.15,
+            pick(PAL.container, (h * 7) % 1),
+          );
+          R(
+            0.74,
+            0.94,
+            0.62,
+            0.94,
+            0.15,
+            0.27,
+            pick(PAL.container, (h * 13) % 1),
+          );
           return 1.02;
         }
         // each airport tile draws its own slice of the runway, apron or landside buildings
@@ -4980,11 +5408,19 @@
           const R = (u0, u1, v0, v1) => {
             const [ax, az] = apWorld(a, u0, v0),
               [bx, bz] = apWorld(a, u1, v1);
-            return [Math.min(ax, bx), Math.min(az, bz), Math.max(ax, bx), Math.max(az, bz)];
+            return [
+              Math.min(ax, bx),
+              Math.min(az, bz),
+              Math.max(ax, bx),
+              Math.max(az, bz),
+            ];
           };
-          const F = (u0, u1, v0, v1, y0, y1, c) => flat(...R(u0, u1, v0, v1), y0, y1, c),
-            B = (u0, u1, v0, v1, y0, y1, c, w) => box(...R(u0, u1, v0, v1), y0, y1, c, w),
-            Lt = (u0, u1, v0, v1, y0, y1, c) => lit(...R(u0, u1, v0, v1), y0, y1, c);
+          const F = (u0, u1, v0, v1, y0, y1, c) =>
+              flat(...R(u0, u1, v0, v1), y0, y1, c),
+            B = (u0, u1, v0, v1, y0, y1, c, w) =>
+              box(...R(u0, u1, v0, v1), y0, y1, c, w),
+            Lt = (u0, u1, v0, v1, y0, y1, c) =>
+              lit(...R(u0, u1, v0, v1), y0, y1, c);
           F(u, u + 1, v, v + 1, 0, 0.02, K.apron);
           if (v === 0) {
             // runway: centre-line dashes, edge lines, piano-key thresholds and edge lights
@@ -4993,7 +5429,16 @@
             F(u, u + 1, 0.88, 0.9, 0.03, 0.032, K.white);
             if (u === 0 || u === AP_L - 1) {
               const e = u === 0 ? 0.12 : AP_L - 0.5;
-              for (let k = 0; k < 6; k++) F(e, e + 0.36, 0.18 + k * 0.11, 0.24 + k * 0.11, 0.03, 0.032, K.white);
+              for (let k = 0; k < 6; k++)
+                F(
+                  e,
+                  e + 0.36,
+                  0.18 + k * 0.11,
+                  0.24 + k * 0.11,
+                  0.03,
+                  0.032,
+                  K.white,
+                );
             } else F(u + 0.15, u + 0.65, 0.485, 0.515, 0.03, 0.032, K.white);
             Lt(u + 0.47, u + 0.53, 0.05, 0.08, 0.03, 0.05, K.lamp);
             Lt(u + 0.47, u + 0.53, 0.92, 0.95, 0.03, 0.05, K.lamp);
@@ -5012,8 +5457,26 @@
           if (u <= 1) {
             // car park
             F(u, u + 1, 2.05, 2.95, 0.02, 0.03, K.asphalt);
-            for (let k = 0; k < 3; k++) F(u + 0.1 + k * 0.32, u + 0.12 + k * 0.32, 2.15, 2.85, 0.03, 0.032, K.white);
-            if (hash(i) > 0.4) B(u + 0.18, u + 0.36, 2.3, 2.42, 0.03, 0.09, pick(PAL.car, hash(i + 5)));
+            for (let k = 0; k < 3; k++)
+              F(
+                u + 0.1 + k * 0.32,
+                u + 0.12 + k * 0.32,
+                2.15,
+                2.85,
+                0.03,
+                0.032,
+                K.white,
+              );
+            if (hash(i) > 0.4)
+              B(
+                u + 0.18,
+                u + 0.36,
+                2.3,
+                2.42,
+                0.03,
+                0.09,
+                pick(PAL.car, hash(i + 5)),
+              );
             return 0.1;
           }
           if (u <= 8) {
@@ -5027,27 +5490,61 @@
             // control tower
             const [cx, cz] = apWorld(a, 9.5, 2.5);
             cyl(cx, cz, 0.11, 0.02, 1.5, K.concrete);
-            B(9.22, 9.78, 2.22, 2.78, 1.5, 1.72, K.terminal, [3, 0.22, 0.12, i]);
+            B(9.22, 9.78, 2.22, 2.78, 1.5, 1.72, K.terminal, [
+              3,
+              0.22,
+              0.12,
+              i,
+            ]);
             B(9.18, 9.82, 2.18, 2.82, 1.72, 1.76, K.dark);
             box(cx - 0.01, cz - 0.01, cx + 0.01, cz + 0.01, 1.76, 2.0, K.dark);
-            lit(cx - 0.02, cz - 0.02, cx + 0.02, cz + 0.02, 2.0, 2.03, K.redLight);
+            lit(
+              cx - 0.02,
+              cz - 0.02,
+              cx + 0.02,
+              cz + 0.02,
+              2.0,
+              2.03,
+              K.redLight,
+            );
             return 2.03;
           }
           // hangar
           B(u, u + 1, 2.1, 2.9, 0.02, 0.45, K.hangar, [1, 0.45, 0.5, i]);
-          prism(...R(u, u + 1, 2.05, 2.95), 0.45, 0.12, pick(PAL.metal, 0.3), a.r % 2 === 0);
+          prism(
+            ...R(u, u + 1, 2.05, 2.95),
+            0.45,
+            0.12,
+            pick(PAL.metal, 0.3),
+            a.r % 2 === 0,
+          );
           return 0.57;
         }
         function drawFerry(x, y, i) {
           const d = riverSide(x, y),
             bankX = d[1] !== 0,
-            R = (u0, u1, v0, v1, y0, y1, c, w) => box(...bankRect(x, y, d, u0, u1, v0, v1), y0, y1, c, w);
+            R = (u0, u1, v0, v1, y0, y1, c, w) =>
+              box(...bankRect(x, y, d, u0, u1, v0, v1), y0, y1, c, w);
           R(0.1, 0.9, 0.08, 0.5, 0, 0.28, K.station, [1, 0.28, 0.12, i]); // ticket hall
-          prism(...bankRect(x, y, d, 0.06, 0.94, 0.05, 0.53), 0.28, 0.12, K.coach, bankX);
+          prism(
+            ...bankRect(x, y, d, 0.06, 0.94, 0.05, 0.53),
+            0.28,
+            0.12,
+            K.coach,
+            bankX,
+          );
           R(0.43, 0.57, 0.5, 1.02, -0.02, 0.0, K.steel); // gangway down to the pontoon
           R(0.1, 0.9, 1.0, 1.42, -0.12, -0.06, K.wagon); // floating pontoon
           R(0.3, 0.7, 1.1, 1.32, -0.06, 0.07, K.station);
-          const [lx0, lz0, lx1, lz1] = bankRect(x, y, d, 0.47, 0.53, 0.52, 0.56);
+          const [lx0, lz0, lx1, lz1] = bankRect(
+            x,
+            y,
+            d,
+            0.47,
+            0.53,
+            0.52,
+            0.56,
+          );
           lit(lx0, lz0, lx1, lz1, 0.24, 0.28, K.lamp);
           glow((lx0 + lx1) / 2, (lz0 + lz1) / 2, 0.5, K.lamp);
           return 0.4;
@@ -5056,26 +5553,45 @@
         function drawStation(x, y, i) {
           drawRail(x, y, i, false);
           const isL = (X, Y) =>
-            X >= 0 && Y >= 0 && X < W && Y < H ? isRl(type[Y * W + X]) : Y === RAIL_Y;
-          const roadAt = (X, Y) => X >= 0 && Y >= 0 && X < W && Y < H && isRd(type[Y * W + X]);
+            X >= 0 && Y >= 0 && X < W && Y < H
+              ? isRl(type[Y * W + X])
+              : Y === RAIL_Y;
+          const roadAt = (X, Y) =>
+            X >= 0 && Y >= 0 && X < W && Y < H && isRd(type[Y * W + X]);
           const alongX = isL(x - 1, y) || isL(x + 1, y);
-          const side = alongX ? (roadAt(x, y - 1) ? -1 : 1) : roadAt(x - 1, y) ? -1 : 1;
+          const side = alongX
+            ? roadAt(x, y - 1)
+              ? -1
+              : 1
+            : roadAt(x - 1, y)
+              ? -1
+              : 1;
           // a rectangle given along the track (a0..a1) and across it, measured from the track towards the street (c0..c1)
           const rc = (a0, a1, c0, c1) => {
             const p = 0.5 + side * c0,
               q = 0.5 + side * c1,
               p0 = Math.min(p, q),
               p1 = Math.max(p, q);
-            return alongX ? [x + a0, y + p0, x + a1, y + p1] : [x + p0, y + a0, x + p1, y + a1];
+            return alongX
+              ? [x + a0, y + p0, x + a1, y + p1]
+              : [x + p0, y + a0, x + p1, y + a1];
           };
-          const B = (a0, a1, c0, c1, y0, y1, col, win) => box(...rc(a0, a1, c0, c1), y0, y1, col, win);
+          const B = (a0, a1, c0, c1, y0, y1, col, win) =>
+            box(...rc(a0, a1, c0, c1), y0, y1, col, win);
           const h = hash(i);
           if (type[i] === T.PSTN) {
             B(0.02, 0.98, 0.18, 0.34, 0, 0.07, K.platform);
             B(0.12, 0.88, 0.34, 0.5, 0, 0.34, K.station, [1, 0.34, 0.12, i]);
-            prism(...rc(0.1, 0.9, 0.32, 0.5), 0.34, 0.12, K.stationRoof, alongX);
+            prism(
+              ...rc(0.1, 0.9, 0.32, 0.5),
+              0.34,
+              0.12,
+              K.stationRoof,
+              alongX,
+            );
             B(0.04, 0.96, 0.16, 0.36, 0.29, 0.31, K.canopy); // platform canopy on posts
-            for (const a of [0.15, 0.5, 0.85]) B(a - 0.015, a + 0.015, 0.2, 0.23, 0.07, 0.29, K.dark);
+            for (const a of [0.15, 0.5, 0.85])
+              B(a - 0.015, a + 0.015, 0.2, 0.23, 0.07, 0.29, K.dark);
             B(0.4, 0.6, 0.5, 0.51, 0.22, 0.29, K.coach); // name board
             const [lx0, lz0, lx1, lz1] = rc(0.47, 0.53, 0.25, 0.28);
             lit(lx0, lz0, lx1, lz1, 0.26, 0.29, K.lamp);
@@ -5084,13 +5600,22 @@
           }
           // freight terminal: a gantry crane over the track and stacked containers by the road
           for (const a of [0.28, 0.66])
-            for (const c of [-0.42, 0.38]) B(a, a + 0.05, c, c + 0.04, 0, 0.72, K.yellow);
+            for (const c of [-0.42, 0.38])
+              B(a, a + 0.05, c, c + 0.04, 0, 0.72, K.yellow);
           B(0.28, 0.33, -0.42, 0.42, 0.66, 0.73, K.yellow);
           B(0.66, 0.71, -0.42, 0.42, 0.66, 0.73, K.yellow);
           B(0.3, 0.7, -0.05, 0.05, 0.6, 0.66, K.dark);
           B(0.06, 0.34, 0.28, 0.46, 0, 0.12, pick(PAL.container, h));
           B(0.38, 0.66, 0.28, 0.46, 0, 0.12, pick(PAL.container, (h * 7) % 1));
-          B(0.08, 0.32, 0.28, 0.46, 0.12, 0.24, pick(PAL.container, (h * 13) % 1));
+          B(
+            0.08,
+            0.32,
+            0.28,
+            0.46,
+            0.12,
+            0.24,
+            pick(PAL.container, (h * 13) % 1),
+          );
           B(0.72, 0.96, 0.3, 0.48, 0, 0.22, K.station, [1, 0.22, 0.12, i]);
           return 0.75;
         }
@@ -5159,10 +5684,19 @@
                 spec = KINDS[k],
                 geo = G[spec.g].clone();
               if (spec.win)
-                geo.setAttribute("aWin", new THREE.InstancedBufferAttribute(new Float32Array(cap * 4), 4));
+                geo.setAttribute(
+                  "aWin",
+                  new THREE.InstancedBufferAttribute(
+                    new Float32Array(cap * 4),
+                    4,
+                  ),
+                );
               geo.boundingSphere = sphere.clone(); // r149 culls instanced meshes by the geometry's sphere
               const mesh = new THREE.InstancedMesh(geo, spec.m, cap);
-              mesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(cap * 3), 3);
+              mesh.instanceColor = new THREE.InstancedBufferAttribute(
+                new Float32Array(cap * 3),
+                3,
+              );
               mesh.castShadow = spec.cast !== false;
               mesh.receiveShadow = spec.recv !== false;
               group.add(mesh);
@@ -5589,7 +6123,11 @@
                   } else if (h > 0.95) tree(x + 0.5, y + 0.5, 0.9, h2);
                 }
             }
-          buildMeshes(PB, grp, new THREE.Sphere(new THREE.Vector3(W / 2, 2, H / 2), EXT * 0.75));
+          buildMeshes(
+            PB,
+            grp,
+            new THREE.Sphere(new THREE.Vector3(W / 2, 2, H / 2), EXT * 0.75),
+          );
           for (const m of grp.children) m.castShadow = false; // far scenery: its shadows are not worth the cost
           PB = null;
           EM = null;
@@ -5797,7 +6335,8 @@
               else if (o === "rail") {
                 if (isRl(t)) f = railConn[i] ? good + ".8)" : bad + ".8)";
                 else if (t === T.PORT || t === T.FERRY) f = good + ".8)";
-                else if (t === T.AIRPORT) f = (airportAt(i) || {}).on ? good + ".6)" : bad + ".6)";
+                else if (t === T.AIRPORT)
+                  f = (airportAt(i) || {}).on ? good + ".6)" : bad + ".6)";
                 else if (pCov[i]) f = blue + ".35)";
                 else if (fCov[i] && lvl[i]) f = brown + ".55)";
                 else continue;
@@ -6030,7 +6569,10 @@
           const nT = reduce ? 0 : Math.min(60, active * 3),
             nC = reduce
               ? 0
-              : Math.min(MAXC - nT, Math.floor((S.pop / 30 + (S.cj + S.ij) / 60) * few));
+              : Math.min(
+                  MAXC - nT,
+                  Math.floor((S.pop / 30 + (S.cj + S.ij) / 60) * few),
+                );
           const haveC = cars.length - nTrucks;
           if (nTrucks < nT) spawnCar(true);
           else if (nTrucks > nT) removeCar(true);
@@ -6042,7 +6584,9 @@
               c.a = -1;
               continue;
             }
-            c.t += sp * (c.truck ? 0.7 : 1);
+            const step = sp * (c.truck ? 0.7 : 1);
+            if (crossClosed[c.b] && c.t < 0.5) c.t = Math.min(0.42, c.t + step); // wait at the barrier
+            else c.t += step;
             if (c.t >= 1) {
               c.t -= 1;
               const n = roadNb(c.b);
@@ -6079,9 +6623,41 @@
             const len = c.truck ? 0.3 : 0.22,
               col = c.truck ? K.truck : PAL.car[c.c];
             const yb = deckAt(X, Z);
-            setM(A, k * 16, X, 0.04 + yb, Z, len, c.truck ? 0.1 : 0.06, 0.11, rot);
-            if (c.truck) setM(B, k * 16, X - dx * 0.04, 0.14 + yb, Z - dz * 0.04, 0.2, 0.06, 0.11, rot);
-            else setM(B, k * 16, X - dx * 0.01, 0.1 + yb, Z - dz * 0.01, 0.12, 0.045, 0.095, rot);
+            setM(
+              A,
+              k * 16,
+              X,
+              0.04 + yb,
+              Z,
+              len,
+              c.truck ? 0.1 : 0.06,
+              0.11,
+              rot,
+            );
+            if (c.truck)
+              setM(
+                B,
+                k * 16,
+                X - dx * 0.04,
+                0.14 + yb,
+                Z - dz * 0.04,
+                0.2,
+                0.06,
+                0.11,
+                rot,
+              );
+            else
+              setM(
+                B,
+                k * 16,
+                X - dx * 0.01,
+                0.1 + yb,
+                Z - dz * 0.01,
+                0.12,
+                0.045,
+                0.095,
+                rot,
+              );
             const tc = c.truck ? K.truckBox : CAR_TOP[c.c];
             cA[k * 3] = col.r;
             cA[k * 3 + 1] = col.g;
@@ -6090,9 +6666,30 @@
             cB[k * 3 + 1] = tc.g;
             cB[k * 3 + 2] = tc.b;
             if (carLightMesh.visible) {
-              const fx = X + dx * len * 0.5, fz = Z + dz * len * 0.5;
-              setM(Lm, l++ * 16, fx - lx * 0.035, 0.06 + yb, fz - lz * 0.035, 0.025, 0.02, 0.025, rot);
-              setM(Lm, l++ * 16, fx + lx * 0.035, 0.06 + yb, fz + lz * 0.035, 0.025, 0.02, 0.025, rot);
+              const fx = X + dx * len * 0.5,
+                fz = Z + dz * len * 0.5;
+              setM(
+                Lm,
+                l++ * 16,
+                fx - lx * 0.035,
+                0.06 + yb,
+                fz - lz * 0.035,
+                0.025,
+                0.02,
+                0.025,
+                rot,
+              );
+              setM(
+                Lm,
+                l++ * 16,
+                fx + lx * 0.035,
+                0.06 + yb,
+                fz + lz * 0.035,
+                0.025,
+                0.02,
+                0.025,
+                rot,
+              );
             }
             k++;
           }
@@ -6140,7 +6737,11 @@
           for (const c of chunks)
             for (let e = 0; e < c.emit.length; e++) {
               const em = c.emit[e],
-                x = em[0], y = em[1], z = em[2], s = em[3], steam = em[4];
+                x = em[0],
+                y = em[1],
+                z = em[2],
+                s = em[3],
+                steam = em[4];
               for (let k = 0; k < puffs; k++) {
                 const ph =
                     (simTime * 0.25 * (steam ? 0.7 : 1) +
@@ -6149,8 +6750,28 @@
                     1,
                   r = (0.06 + ph * 0.2) * s * (ph > 0.8 ? (1 - ph) * 5 : 1);
                 if (steam) {
-                  if (b < MAXP) setM(SB, b++ * 16, x + ph * 0.6, y + ph * 1.1 * s, z - ph * 0.3, r, r, r);
-                } else if (a < MAXP) setM(SA, a++ * 16, x + ph * 0.6, y + ph * 1.1 * s, z - ph * 0.3, r, r, r);
+                  if (b < MAXP)
+                    setM(
+                      SB,
+                      b++ * 16,
+                      x + ph * 0.6,
+                      y + ph * 1.1 * s,
+                      z - ph * 0.3,
+                      r,
+                      r,
+                      r,
+                    );
+                } else if (a < MAXP)
+                  setM(
+                    SA,
+                    a++ * 16,
+                    x + ph * 0.6,
+                    y + ph * 1.1 * s,
+                    z - ph * 0.3,
+                    r,
+                    r,
+                    r,
+                  );
               }
             }
           smokeMesh.count = a;
@@ -6162,17 +6783,25 @@
         /* ---- trains: passenger and freight trains run on any track; the national line carries
            them in from the countryside and out again ---- */
         const railAt = (x, y) =>
-          x >= 0 && x < W && y >= 0 && y < H ? isRl(type[y * W + x]) : y === RAIL_Y && x >= -M && x < W + M;
+          x >= 0 && x < W && y >= 0 && y < H
+            ? isRl(type[y * W + x])
+            : y === RAIL_Y && x >= -M && x < W + M;
         const MAXTC = 160; // train cars on screen at once
         const trainGeo = G.box.clone();
-        trainGeo.setAttribute("aWin", new THREE.InstancedBufferAttribute(new Float32Array(MAXTC * 4), 4));
+        trainGeo.setAttribute(
+          "aWin",
+          new THREE.InstancedBufferAttribute(new Float32Array(MAXTC * 4), 4),
+        );
         const trainBody = new THREE.InstancedMesh(trainGeo, matBuild, MAXTC),
           trainTop = new THREE.InstancedMesh(G.box, matPlain, MAXTC);
         for (const m of [trainBody, trainTop]) {
           m.frustumCulled = false;
           m.count = 0;
           m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-          m.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(MAXTC * 3), 3);
+          m.instanceColor = new THREE.InstancedBufferAttribute(
+            new Float32Array(MAXTC * 3),
+            3,
+          );
           scene.add(m);
         }
         let trains = [];
@@ -6188,9 +6817,21 @@
           const dir = ends[(Math.random() * ends.length) | 0],
             x = dir > 0 ? -M : W + M - 1,
             hist = [];
-          for (const tr of trains) if (tr.ay === RAIL_Y && Math.abs(tr.ax - x) < 12) return; // keep a gap at the entry
+          for (const tr of trains)
+            if (tr.ay === RAIL_Y && Math.abs(tr.ax - x) < 12) return; // keep a gap at the entry
           for (let k = 1; k <= 10; k++) hist.push([x - dir * k, RAIL_Y]);
-          trains.push({ ax: x, ay: RAIL_Y, bx: x + dir, by: RAIL_Y, t: 0, hist, kind, dwell: 0, n: kind === "p" ? 5 : 7, seed: (Math.random() * 997) | 0 });
+          trains.push({
+            ax: x,
+            ay: RAIL_Y,
+            bx: x + dir,
+            by: RAIL_Y,
+            t: 0,
+            hist,
+            kind,
+            dwell: 0,
+            n: kind === "p" ? 5 : 7,
+            seed: (Math.random() * 997) | 0,
+          });
         }
         function updateTrains(dt) {
           const wantP = reduce ? 0 : 1 + Math.min(3, S.pstnOn || 0),
@@ -6222,27 +6863,38 @@
               tr.ay = tr.by;
               if (tr.ax >= 0 && tr.ax < W && tr.ay >= 0 && tr.ay < H) {
                 const here = type[tr.ay * W + tr.ax];
-                if ((tr.kind === "p" && here === T.PSTN) || (tr.kind === "f" && here === T.FSTN)) {
+                if (
+                  (tr.kind === "p" && here === T.PSTN) ||
+                  (tr.kind === "f" && here === T.FSTN)
+                ) {
                   tr.dwell = 2.5; // stop at the station for a moment
                   tr.t = 0;
                 }
               }
               // straight on where possible, otherwise any way but back; at the end of the line the train leaves
               const opts = [];
-              for (const [ox, oy] of [[dx, dy], [dy, dx], [-dy, -dx]])
+              for (const [ox, oy] of [
+                [dx, dy],
+                [dy, dx],
+                [-dy, -dx],
+              ])
                 if (railAt(tr.ax + ox, tr.ay + oy)) opts.push([ox, oy]);
               if (!opts.length) {
                 tr.dead = true;
                 break;
               }
-              const pickd = opts[0][0] === dx && opts[0][1] === dy && Math.random() < 0.65 ? opts[0] : opts[(Math.random() * opts.length) | 0];
+              const pickd =
+                opts[0][0] === dx && opts[0][1] === dy && Math.random() < 0.65
+                  ? opts[0]
+                  : opts[(Math.random() * opts.length) | 0];
               tr.bx = tr.ax + pickd[0];
               tr.by = tr.ay + pickd[1];
               if (tr.dwell) break;
             }
           }
           let live = 0;
-          for (let r = 0; r < trains.length; r++) if (!trains[r].dead) trains[live++] = trains[r];
+          for (let r = 0; r < trains.length; r++)
+            if (!trains[r].dead) trains[live++] = trains[r];
           trains.length = live;
           // lay the cars out along the track behind the head
           const A = trainBody.instanceMatrix.array,
@@ -6251,6 +6903,19 @@
             cB = trainTop.instanceColor.array,
             wA = trainGeo.attributes.aWin.array;
           let k = 0;
+          for (const cr of crossList) crossClosed[cr.i] = 0;
+          const nearCross = (X, Z) => {
+            const x0 = Math.floor(X),
+              z0 = Math.floor(Z);
+            for (let dz = -2; dz <= 2; dz++)
+              for (let dx = -2; dx <= 2; dx++) {
+                const x = x0 + dx,
+                  z = z0 + dz;
+                if (x < 0 || z < 0 || x >= W || z >= H) continue;
+                const i = z * W + x;
+                if (type[i] === T.CROSS && Math.abs(x + 0.5 - X) + Math.abs(z + 0.5 - Z) < 2.2) crossClosed[i] = 1;
+              }
+          };
           for (const tr of trains)
             for (let c = 0; c < tr.n && k < MAXTC; c++) {
               const s = c * 0.95 + 0.45;
@@ -6264,7 +6929,10 @@
                 const r = s - tr.t,
                   j = Math.floor(r),
                   f = r - j,
-                  p0 = j === 0 ? [tr.ax, tr.ay] : tr.hist[j - 1] || tr.hist[tr.hist.length - 1],
+                  p0 =
+                    j === 0
+                      ? [tr.ax, tr.ay]
+                      : tr.hist[j - 1] || tr.hist[tr.hist.length - 1],
                   p1 = tr.hist[j] || p0;
                 dx = p0[0] - p1[0];
                 dz = p0[1] - p1[1];
@@ -6275,6 +6943,7 @@
                 X = px + 0.5,
                 Z = pz + 0.5,
                 y0 = 0.07 + deckAt(X, Z),
+                _near = nearCross(X, Z),
                 loco = c === 0,
                 pass = tr.kind === "p";
               let body, top;
@@ -6282,7 +6951,17 @@
                 body = pass ? K.locoP : K.locoF;
                 top = K.dark;
                 setM(A, k * 16, X, y0, Z, 0.86, 0.26, 0.2, rot);
-                setM(Bm, k * 16, X + dx * 0.24, y0 + 0.26, Z + dz * 0.24, 0.3, 0.06, 0.18, rot);
+                setM(
+                  Bm,
+                  k * 16,
+                  X + dx * 0.24,
+                  y0 + 0.26,
+                  Z + dz * 0.24,
+                  0.3,
+                  0.06,
+                  0.18,
+                  rot,
+                );
                 wA.set([0, 0.3, 0.2, 0], k * 4);
               } else if (pass) {
                 body = K.coach;
@@ -6306,10 +6985,81 @@
               k++;
             }
           trainBody.count = trainTop.count = k;
-          trainBody.instanceMatrix.needsUpdate = trainTop.instanceMatrix.needsUpdate = true;
-          trainBody.instanceColor.needsUpdate = trainTop.instanceColor.needsUpdate = true;
+          drawBarriers();
+          trainBody.instanceMatrix.needsUpdate =
+            trainTop.instanceMatrix.needsUpdate = true;
+          trainBody.instanceColor.needsUpdate =
+            trainTop.instanceColor.needsUpdate = true;
           trainGeo.attributes.aWin.needsUpdate = true;
         }
+
+        // barrier arms at level crossings: upright while the line is clear, across the road while a train passes
+        const MAXBAR = 240;
+        const barrierMesh = new THREE.InstancedMesh(G.box, matPlain, MAXBAR);
+        barrierMesh.frustumCulled = false;
+        barrierMesh.count = 0;
+        barrierMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+        barrierMesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(MAXBAR * 3).fill(0), 3);
+        scene.add(barrierMesh);
+        barriersReady = true;
+        function drawBarriers() {
+          const A = barrierMesh.instanceMatrix.array,
+            C = barrierMesh.instanceColor.array;
+          let k = 0;
+          for (const cr of crossList) {
+            if (k > MAXBAR - 2) break;
+            const { x, y, railX, i } = cr,
+              shut = crossClosed[i],
+              // posts sit at two opposite corners; each arm reaches over half the road
+              posts = railX
+                ? [[0.1, 0.06, 1], [0.9, 0.94, -1]]
+                : [[0.06, 0.1, 1], [0.94, 0.9, -1]];
+            for (const [px, pz, d] of posts) {
+              if (shut) {
+                if (railX) setM(A, k * 16, x + px + d * 0.2, 0.24, y + pz, 0.4, 0.03, 0.03, 0);
+                else setM(A, k * 16, x + px, 0.24, y + pz + d * 0.2, 0.03, 0.03, 0.4, 0);
+              } else setM(A, k * 16, x + px, 0.27, y + pz, 0.03, 0.4, 0.03, 0);
+              C[k * 3] = K.red.r;
+              C[k * 3 + 1] = K.red.g;
+              C[k * 3 + 2] = K.red.b;
+              k++;
+            }
+          }
+          barrierMesh.count = k;
+          barrierMesh.instanceMatrix.needsUpdate = barrierMesh.instanceColor.needsUpdate = true;
+        }
+
+        // soft round shadow decals for aircraft, and small glowing navigation lights
+        const shadowTex = (() => {
+          const c = document.createElement("canvas");
+          c.width = c.height = 64;
+          const g = c.getContext("2d"),
+            gr = g.createRadialGradient(32, 32, 2, 32, 32, 32);
+          gr.addColorStop(0, "rgba(0,0,0,0.55)");
+          gr.addColorStop(1, "rgba(0,0,0,0)");
+          g.fillStyle = gr;
+          g.fillRect(0, 0, 64, 64);
+          return new THREE.CanvasTexture(c);
+        })();
+        const planeShadow = new THREE.InstancedMesh(
+          new THREE.PlaneGeometry(1, 0.55).rotateX(-Math.PI / 2),
+          new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, toneMapped: false }),
+          30,
+        );
+        planeShadow.frustumCulled = false;
+        planeShadow.count = 0;
+        planeShadow.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+        planeShadow.renderOrder = 1;
+        scene.add(planeShadow);
+        const MAXNAV = 200;
+        let navPlaneCount = 0;
+        const navLights = new THREE.InstancedMesh(G.box, matEmit, MAXNAV);
+        navLights.frustumCulled = false;
+        navLights.count = 0;
+        navLights.visible = false;
+        navLights.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+        navLights.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(MAXNAV * 3).fill(1), 3);
+        scene.add(navLights);
 
         /* ---- river traffic: cargo ships for ports, double-deck launches for ghats, and country boats ---- */
         const riverMidZ = (x) => Math.round(riverMid(x)) - 1 + riverW(x) / 2;
@@ -6317,20 +7067,32 @@
           // the river's centre line, smoothed over a few columns so boats glide instead of zig-zagging
           const x0 = Math.floor(xf),
             f = xf - x0,
-            avg = (x) => (riverMidZ(x - 2) + riverMidZ(x - 1) + riverMidZ(x) + riverMidZ(x + 1) + riverMidZ(x + 2)) / 5;
+            avg = (x) =>
+              (riverMidZ(x - 2) +
+                riverMidZ(x - 1) +
+                riverMidZ(x) +
+                riverMidZ(x + 1) +
+                riverMidZ(x + 2)) /
+              5;
           return avg(x0) + (avg(x0 + 1) - avg(x0)) * f;
         }
         const MAXSB = 220,
           MAXST = 260;
         const shipGeo = G.box.clone();
-        shipGeo.setAttribute("aWin", new THREE.InstancedBufferAttribute(new Float32Array(MAXSB * 4), 4));
+        shipGeo.setAttribute(
+          "aWin",
+          new THREE.InstancedBufferAttribute(new Float32Array(MAXSB * 4), 4),
+        );
         const shipBody = new THREE.InstancedMesh(shipGeo, matBuild, MAXSB),
           shipTop = new THREE.InstancedMesh(G.box, matPlain, MAXST);
         for (const m of [shipBody, shipTop]) {
           m.frustumCulled = false;
           m.count = 0;
           m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-          m.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(m === shipBody ? MAXSB * 3 : MAXST * 3), 3);
+          m.instanceColor = new THREE.InstancedBufferAttribute(
+            new Float32Array(m === shipBody ? MAXSB * 3 : MAXST * 3),
+            3,
+          );
           scene.add(m);
         }
         const SHIPC = {
@@ -6346,7 +7108,8 @@
         function spawnShip(kind) {
           const dir = Math.random() < 0.5 ? 1 : -1,
             x = dir > 0 ? -M : W + M;
-          for (const sh of ships) if (sh.dir === dir && Math.abs(sh.x - x) < 6) return; // keep a gap at the river mouth
+          for (const sh of ships)
+            if (sh.dir === dir && Math.abs(sh.x - x) < 6) return; // keep a gap at the river mouth
           ships.push({
             kind,
             dir,
@@ -6368,7 +7131,8 @@
           };
           const have = { cargo: 0, launch: 0, boat: 0 };
           for (const sh of ships) have[sh.kind]++;
-          for (const k in want) if (have[k] < want[k] && Math.random() < dt * 0.25) spawnShip(k);
+          for (const k in want)
+            if (have[k] < want[k] && Math.random() < dt * 0.25) spawnShip(k);
           const pace = [0, 1, 1.8, 3, 4.5][st.speed];
           for (const sh of ships) {
             sh.lane += (sh.laneT - sh.lane) * Math.min(1, dt * pace * 1.5); // drift towards the quay and back out
@@ -6377,10 +7141,17 @@
               if (sh.dwell <= 0) sh.laneT = sh.home;
               continue;
             }
-            const step = (sh.kind === "cargo" ? 0.5 : sh.kind === "launch" ? 0.7 : 0.3) * pace * dt,
+            const step =
+                (sh.kind === "cargo" ? 0.5 : sh.kind === "launch" ? 0.7 : 0.3) *
+                pace *
+                dt,
               nx = sh.x + sh.dir * step;
             for (const p of S.portList || [])
-              if (p.kind === sh.kind && !sh.visited.has(p.x) && (sh.x - p.x) * (nx - p.x) <= 0) {
+              if (
+                p.kind === sh.kind &&
+                !sh.visited.has(p.x) &&
+                (sh.x - p.x) * (nx - p.x) <= 0
+              ) {
                 sh.visited.add(p.x); // tie up at the port or ghat for a while
                 sh.dwell = 4;
                 sh.x = p.x;
@@ -6391,7 +7162,8 @@
             if (sh.x < -M - 2 || sh.x > W + M + 2) sh.dead = true;
           }
           let live = 0;
-          for (let r = 0; r < ships.length; r++) if (!ships[r].dead) ships[live++] = ships[r];
+          for (let r = 0; r < ships.length; r++)
+            if (!ships[r].dead) ships[live++] = ships[r];
           ships.length = live;
           // lay out each vessel's parts around its centre
           const A = shipBody.instanceMatrix.array,
@@ -6435,26 +7207,71 @@
             if (sh.kind === "cargo") {
               part(false, 0, 0, 1.5, 0.36, -0.05, 0.05, SHIPC.hull);
               part(false, 0.82, 0, 0.16, 0.22, -0.05, 0.05, SHIPC.hull);
-              part(false, -0.55, 0, 0.24, 0.3, 0.05, 0.22, SHIPC.white, [1, 0.08, 0.08, sh.seed]);
-              for (let k = 0; k < 3; k++) part(true, -0.2 + k * 0.3, 0, 0.28, 0.3, 0.05, 0.17, pick(PAL.container, hash(sh.seed * 7 + k)));
+              part(false, -0.55, 0, 0.24, 0.3, 0.05, 0.22, SHIPC.white, [
+                1,
+                0.08,
+                0.08,
+                sh.seed,
+              ]);
+              for (let k = 0; k < 3; k++)
+                part(
+                  true,
+                  -0.2 + k * 0.3,
+                  0,
+                  0.28,
+                  0.3,
+                  0.05,
+                  0.17,
+                  pick(PAL.container, hash(sh.seed * 7 + k)),
+                );
               part(true, -0.62, 0, 0.06, 0.06, 0.22, 0.3, K.dark);
             } else if (sh.kind === "launch") {
               part(false, 0, 0, 1.3, 0.34, -0.05, 0.03, SHIPC.white);
               part(false, 0.72, 0, 0.14, 0.2, -0.05, 0.03, SHIPC.white);
-              part(false, 0, 0, 1.1, 0.32, 0.03, 0.12, SHIPC.white, [2, 0.09, 1, sh.seed]);
-              part(false, -0.1, 0, 0.75, 0.3, 0.12, 0.2, SHIPC.white, [2, 0.08, 1, sh.seed + 1]);
+              part(false, 0, 0, 1.1, 0.32, 0.03, 0.12, SHIPC.white, [
+                2,
+                0.09,
+                1,
+                sh.seed,
+              ]);
+              part(false, -0.1, 0, 0.75, 0.3, 0.12, 0.2, SHIPC.white, [
+                2,
+                0.08,
+                1,
+                sh.seed + 1,
+              ]);
               part(true, -0.1, 0, 0.8, 0.32, 0.2, 0.215, SHIPC.roof);
               part(true, 0, 0, 1.31, 0.35, 0.0, 0.02, SHIPC.stripe);
             } else {
               part(false, 0, 0, 0.48, 0.13, -0.04, 0.0, SHIPC.wood);
               part(true, -0.02, 0, 0.2, 0.12, 0.0, 0.05, SHIPC.straw);
-              if (sh.sail) part(true, 0.1, 0, 0.18, 0.012, 0.0, 0.26, SHIPC.sail);
+              if (sh.sail)
+                part(true, 0.1, 0, 0.18, 0.012, 0.0, 0.26, SHIPC.sail);
             }
+          }
+          // a white masthead light on every vessel at night
+          if (navLights.visible) {
+            const LA = navLights.instanceMatrix.array,
+              LC = navLights.instanceColor.array;
+            let kl = navPlaneCount;
+            for (const sh of ships) {
+              if (kl >= MAXNAV) break;
+              const zc = riverC(sh.x) + sh.lane,
+                h = sh.kind === "boat" ? 0.08 : 0.3;
+              setM(LA, kl * 16, sh.x, -0.1 + h, zc, 0.04, 0.04, 0.04, 0);
+              LC[kl * 3] = LC[kl * 3 + 1] = 1;
+              LC[kl * 3 + 2] = 0.85;
+              kl++;
+            }
+            navLights.count = kl;
+            navLights.instanceMatrix.needsUpdate = navLights.instanceColor.needsUpdate = true;
           }
           shipBody.count = kb;
           shipTop.count = kt;
-          shipBody.instanceMatrix.needsUpdate = shipTop.instanceMatrix.needsUpdate = true;
-          shipBody.instanceColor.needsUpdate = shipTop.instanceColor.needsUpdate = true;
+          shipBody.instanceMatrix.needsUpdate =
+            shipTop.instanceMatrix.needsUpdate = true;
+          shipBody.instanceColor.needsUpdate =
+            shipTop.instanceColor.needsUpdate = true;
           shipGeo.attributes.aWin.needsUpdate = true;
         }
 
@@ -6464,14 +7281,20 @@
           MAXPT = 200,
           LIVERY = P3([0x0b6e4f, 0x1f5fa8, 0xd2552b, 0x7a2e8a]);
         const planeGeo = G.box.clone();
-        planeGeo.setAttribute("aWin", new THREE.InstancedBufferAttribute(new Float32Array(MAXPB * 4), 4));
+        planeGeo.setAttribute(
+          "aWin",
+          new THREE.InstancedBufferAttribute(new Float32Array(MAXPB * 4), 4),
+        );
         const planeBody = new THREE.InstancedMesh(planeGeo, matBuild, MAXPB),
           planeTop = new THREE.InstancedMesh(G.box, matPlain, MAXPT);
         for (const m of [planeBody, planeTop]) {
           m.frustumCulled = false;
           m.count = 0;
           m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-          m.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(m === planeBody ? MAXPB * 3 : MAXPT * 3), 3);
+          m.instanceColor = new THREE.InstancedBufferAttribute(
+            new Float32Array(m === planeBody ? MAXPB * 3 : MAXPT * 3),
+            3,
+          );
           scene.add(m);
         }
         let planes = [];
@@ -6502,7 +7325,17 @@
               }
             if (n < 2 && Math.random() < dt * 0.05 * pace) {
               const stand = used === 4.5 ? 8.5 : 4.5;
-              planes.push({ a, stand, pts: planePath(stand), seg: 0, t: 0, wait: 0, col: (Math.random() * LIVERY.length) | 0, seed: (Math.random() * 997) | 0, rot: 0 });
+              planes.push({
+                a,
+                stand,
+                pts: planePath(stand),
+                seg: 0,
+                t: 0,
+                wait: 0,
+                col: (Math.random() * LIVERY.length) | 0,
+                seed: (Math.random() * 997) | 0,
+                rot: 0,
+              });
             }
           }
           for (const pl of planes) {
@@ -6526,7 +7359,8 @@
             }
           }
           let live = 0;
-          for (let r = 0; r < planes.length; r++) if (!planes[r].dead) planes[live++] = planes[r];
+          for (let r = 0; r < planes.length; r++)
+            if (!planes[r].dead) planes[live++] = planes[r];
           planes.length = live;
           const Am = planeBody.instanceMatrix.array,
             Bm = planeTop.instanceMatrix.array,
@@ -6570,7 +7404,12 @@
                 kb++;
               }
             };
-            part(false, 0, 0, 1.3, 0.16, 0.06, 0.22, K.white, [2, 0.16, 1, pl.seed]); // fuselage with a window strip
+            part(false, 0, 0, 1.3, 0.16, 0.06, 0.22, K.white, [
+              2,
+              0.16,
+              1,
+              pl.seed,
+            ]); // fuselage with a window strip
             part(true, 0.72, 0, 0.16, 0.12, 0.08, 0.2, K.white); // nose
             part(true, 0, 0, 1.31, 0.165, 0.09, 0.11, liv); // cheat line
             part(true, 0.05, 0, 0.32, 1.3, 0.12, 0.145, K.hangar); // wings
@@ -6579,10 +7418,52 @@
             part(true, -0.55, 0, 0.2, 0.02, 0.22, 0.45, liv); // tail fin
             part(true, -0.58, 0, 0.14, 0.44, 0.2, 0.22, K.hangar); // tailplane
           }
+          // shadows: where the sun would throw them, smaller and fainter the higher the plane is
+          const SA = planeShadow.instanceMatrix.array,
+            LA = navLights.instanceMatrix.array,
+            LC = navLights.instanceColor.array;
+          let ks = 0,
+            kl = 0;
+          const blink = Math.sin(U.time.value * 6) > 0.6;
+          for (const pl of planes) {
+            if (ks >= MAXPB) break;
+            const A2 = pl.pts[pl.seg],
+              B2 = pl.pts[pl.seg + 1],
+              u = A2[0] + (B2[0] - A2[0]) * pl.t,
+              v = A2[1] + (B2[1] - A2[1]) * pl.t,
+              alt = A2[2] + (B2[2] - A2[2]) * pl.t,
+              [X, Z] = apWorld(pl.a, u, v),
+              k2 = sunDir.y > 0.05 ? alt / sunDir.y : 0,
+              sz = 1.3 / (1 + alt * 0.12);
+            setM(SA, ks * 16, X - sunDir.x * k2, 0.035, Z - sunDir.z * k2, sz, 1, sz, pl.rot);
+            ks++;
+            if (navLights.visible && kl < MAXPB * 3 - 3) {
+              const ux = Math.cos(pl.rot),
+                uz = -Math.sin(pl.rot),
+                y = 0.02 + alt + 0.13,
+                lights = [
+                  [0.05, 0.66, 0xff3030],
+                  [0.05, -0.66, 0x30ff60],
+                ];
+              if (blink) lights.push([-0.6, 0, 0xffffff]);
+              for (const [a, c, col] of lights) {
+                setM(LA, kl * 16, X + ux * a - uz * c, y, Z + uz * a + ux * c, 0.05, 0.04, 0.05, 0);
+                LC[kl * 3] = ((col >> 16) & 255) / 255;
+                LC[kl * 3 + 1] = ((col >> 8) & 255) / 255;
+                LC[kl * 3 + 2] = (col & 255) / 255;
+                kl++;
+              }
+            }
+          }
+          planeShadow.count = ks;
+          planeShadow.instanceMatrix.needsUpdate = true;
+          navPlaneCount = kl;
           planeBody.count = kb;
           planeTop.count = kt;
-          planeBody.instanceMatrix.needsUpdate = planeTop.instanceMatrix.needsUpdate = true;
-          planeBody.instanceColor.needsUpdate = planeTop.instanceColor.needsUpdate = true;
+          planeBody.instanceMatrix.needsUpdate =
+            planeTop.instanceMatrix.needsUpdate = true;
+          planeBody.instanceColor.needsUpdate =
+            planeTop.instanceColor.needsUpdate = true;
           planeGeo.attributes.aWin.needsUpdate = true;
         }
 
@@ -6607,8 +7488,18 @@
         })();
         const FLOW_GAP = 7,
           FLOW_N = Math.ceil(EXT / FLOW_GAP);
-        const flowMat = new THREE.MeshBasicMaterial({ map: flowTex, transparent: true, depthWrite: false, toneMapped: false, opacity: 0.55 });
-        const flowMesh = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), flowMat, FLOW_N);
+        const flowMat = new THREE.MeshBasicMaterial({
+          map: flowTex,
+          transparent: true,
+          depthWrite: false,
+          toneMapped: false,
+          opacity: 0.55,
+        });
+        const flowMesh = new THREE.InstancedMesh(
+          new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2),
+          flowMat,
+          FLOW_N,
+        );
         flowMesh.frustumCulled = false;
         flowMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
         flowMesh.renderOrder = 1;
@@ -6624,7 +7515,9 @@
           }
           flowMesh.instanceMatrix.needsUpdate = true;
           // clearer while a water layer is shown
-          flowMat.opacity = ["water", "sewer", "poll"].includes(st.overlay) ? 0.9 : 0.55;
+          flowMat.opacity = ["water", "sewer", "poll"].includes(st.overlay)
+            ? 0.9
+            : 0.55;
         }
 
         function setTod(t) {
@@ -6649,6 +7542,9 @@
           matEmit.color.setScalar(p.lamp);
           matGlow.opacity = p.night * 0.55;
           carLightMesh.visible = p.night > 0.3;
+          navLights.visible = p.night > 0.3;
+          if (!navLights.visible) navLights.count = 0;
+          planeShadow.visible = t !== "night"; // no sharp shadows by moonlight
           shadowDirty = redraw = true;
           document
             .querySelectorAll("#tod button")
@@ -7018,6 +7914,12 @@
           },
           { passive: false },
         );
+        function turnAirport() {
+          st.apRot = (st.apRot + 1) % 4; // a quarter turn
+          redraw = true;
+          if (hover >= 0) describe(hover);
+        }
+        $("apRotate").addEventListener("click", turnAirport);
         const keys = new Set();
         document.addEventListener("keydown", (e) => {
           if (e.target.tagName === "INPUT") return;
@@ -7048,11 +7950,7 @@
             B: "buy",
           };
           if (map[e.key]) setTool(map[e.key]);
-          if ((e.key === "t" || e.key === "T") && st.tool === "airport") {
-            st.apRot = (st.apRot + 1) % 4; // turn the airport a quarter
-            redraw = true;
-            if (hover >= 0) describe(hover);
-          }
+          if ((e.key === "t" || e.key === "T") && st.tool === "airport") turnAirport();
           if (e.key === " ") {
             e.preventDefault();
             setSpeed(st.speed ? 0 : 1);
@@ -7179,14 +8077,30 @@
                 : "বিদ্যুৎ নেই, বন্ধ",
             );
           if (isRl(t)) {
-            parts.push(railConn[i] ? "মূল রেললাইনের সাথে যুক্ত" : "মূল রেললাইনের সাথে যুক্ত নয়");
-            if (t === T.PSTN && railConn[i]) parts.push(`শহরের মোট যাত্রী মাসে ${fmt(S.riders)}`);
-            if (t === T.FSTN && railConn[i]) parts.push(`মালভাড়া মাসে ${taka(S.freight)}`);
-          } else if (t === T.PORT) parts.push(`জাহাজে মাল রপ্তানি · মোট মালভাড়া মাসে ${taka(S.freight)}`);
+            parts.push(
+              railConn[i]
+                ? "মূল রেললাইনের সাথে যুক্ত"
+                : "মূল রেললাইনের সাথে যুক্ত নয়",
+            );
+            if (t === T.PSTN && railConn[i])
+              parts.push(`শহরের মোট যাত্রী মাসে ${fmt(S.riders)}`);
+            if (t === T.FSTN && railConn[i])
+              parts.push(`মালভাড়া মাসে ${taka(S.freight)}`);
+          } else if (t === T.PORT)
+            parts.push(
+              `জাহাজে মাল রপ্তানি · মোট মালভাড়া মাসে ${taka(S.freight)}`,
+            );
           else if (t === T.AIRPORT) {
             const a = airportAt(i);
-            parts.push(a && a.on ? `চালু · পর্যটন আর ব্যবসা থেকে মাসে ${taka(S.flyers)} · আশেপাশে শব্দদূষণ` : `বন্ধ: ${S.airWhy}`);
-          } else if (t === T.FERRY) parts.push(`লঞ্চে যাত্রী ওঠে · শহরের মোট যাত্রী মাসে ${fmt(S.riders)}`);
+            parts.push(
+              a && a.on
+                ? `চালু · পর্যটন আর ব্যবসা থেকে মাসে ${taka(S.flyers)} · আশেপাশে শব্দদূষণ`
+                : `বন্ধ: ${S.airWhy}`,
+            );
+          } else if (t === T.FERRY)
+            parts.push(
+              `লঞ্চে যাত্রী ওঠে · শহরের মোট যাত্রী মাসে ${fmt(S.riders)}`,
+            );
           else if (pCov[i]) parts.push("কাছে স্টেশন বা লঞ্চঘাট আছে");
           parts.push(
             `দূষণ ${bn(Math.round(poll[i] * 100))}%`,
@@ -7202,16 +8116,20 @@
             parts.push("এটা শুধু নদীর পাড়ে বসে");
           else if (st.tool === "airport") {
             const why = airportCheck(apFootprint(i % W, (i / W) | 0, st.apRot));
-            parts.push(why || `এখানে বিমানবন্দর বসানো যাবে · খরচ ${taka(COST.airport)}`, "T চেপে ঘোরাও");
-          }
-          else if (
+            parts.push(
+              why || `এখানে বিমানবন্দর বসানো যাবে · খরচ ${taka(COST.airport)}`,
+              "T চেপে ঘোরাও",
+            );
+          } else if (
             (st.tool === "pstation" || st.tool === "fstation") &&
             owned[plotOf(i)]
           )
             parts.push("স্টেশন বসে সোজা রেললাইনের ওপর, পাশে রাস্তা লাগে");
           $("hover").textContent = parts.join(" · ");
           const why = whyStuck(i);
-          $("why").textContent = why.length ? "⚠ কেন বাড়ছে না: " + why.join(" · ") : "";
+          $("why").textContent = why.length
+            ? "⚠ কেন বাড়ছে না: " + why.join(" · ")
+            : "";
         }
         function updateBrush() {
           if (hover < 0 || st.tool === "pan") {
