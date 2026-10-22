@@ -481,6 +481,39 @@
         border-color: var(--warn);
         color: var(--warn);
       }
+      .act:disabled {
+        opacity: 0.45;
+        cursor: default;
+      }
+      .saveinfo {
+        font-size: 0.8rem;
+        color: var(--muted);
+      }
+      .slots {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .slot {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto auto;
+        gap: 6px;
+        align-items: center;
+        font-size: 0.82rem;
+        line-height: 1.3;
+      }
+      .slot .meta {
+        color: var(--muted);
+        min-width: 0;
+      }
+      .slot .meta b {
+        color: var(--ink);
+        font-weight: 600;
+      }
+      .slot .act {
+        padding: 4px 9px;
+        font-size: 0.8rem;
+      }
       details {
         font-size: 0.86rem;
         color: var(--muted);
@@ -789,6 +822,19 @@
           <div class="block">
             <h2>মেয়রের উপদেষ্টা</h2>
             <ul class="advice" id="advice"></ul>
+          </div>
+          <div class="block">
+            <h2>সংরক্ষণ</h2>
+            <div class="acts">
+              <button class="act" id="btnSave">এখনই সেভ করো</button>
+              <span class="saveinfo" id="saveInfo">নিজে থেকেও সেভ হয়</span>
+            </div>
+            <div class="slots" id="slots"></div>
+            <div class="acts">
+              <button class="act" id="btnExport">ফাইলে নামাও</button>
+              <button class="act" id="btnImport">ফাইল থেকে খোলো</button>
+              <input type="file" id="fileIn" accept=".json,application/json" hidden />
+            </div>
           </div>
           <div class="block">
             <div class="acts">
@@ -2176,6 +2222,106 @@
           },
           "ফাঁকা মানচিত্র",
         );
+        /* ---- save slots and files ---- */
+        const SLOTS = 3,
+          slotKey = (n) => KEY + "-slot" + n;
+        function readSlot(n) {
+          try {
+            return JSON.parse(localStorage.getItem(slotKey(n)) || "null");
+          } catch (e) {
+            return null;
+          }
+        }
+        // two-step button: the first click asks, a second click within 3s does it
+        function confirmClick(btn, label, fn) {
+          if (btn.classList.contains("armed")) {
+            btn.classList.remove("armed");
+            btn.textContent = label;
+            fn();
+            return;
+          }
+          btn.classList.add("armed");
+          btn.textContent = "নিশ্চিত?";
+          setTimeout(() => {
+            btn.classList.remove("armed");
+            btn.textContent = label;
+          }, 3000);
+        }
+        function drawSlots() {
+          const box = $("slots");
+          box.innerHTML = "";
+          for (let n = 1; n <= SLOTS; n++) {
+            const d = readSlot(n),
+              row = document.createElement("div"),
+              meta = document.createElement("span"),
+              bSave = document.createElement("button"),
+              bLoad = document.createElement("button");
+            row.className = "slot";
+            meta.className = "meta";
+            meta.innerHTML = d
+              ? `<b>স্লট ${bn(n)}</b> · ${MONTHS[d.month % 12]}, বছর ${bn(Math.floor(d.month / 12) + 1)} · ${fmt(d.pop || 0)} জন<br>${when(d.savedAt || 0)}`
+              : `<b>স্লট ${bn(n)}</b> · খালি`;
+            bSave.className = bLoad.className = "act";
+            bSave.textContent = "সেভ";
+            bLoad.textContent = "খোলো";
+            bLoad.disabled = !d;
+            bSave.addEventListener("click", () => {
+              const go = () => {
+                try {
+                  localStorage.setItem(slotKey(n), JSON.stringify(snapshot()));
+                  flash(`স্লট ${bn(n)}-এ সেভ হলো`);
+                } catch (e) {
+                  flash("সেভ করার জায়গা নেই");
+                }
+                drawSlots();
+              };
+              d ? confirmClick(bSave, "সেভ", go) : go();   // only ask when it would overwrite
+            });
+            bLoad.addEventListener("click", () =>
+              confirmClick(bLoad, "খোলো", () => {
+                if (restore(readSlot(n))) {
+                  save();
+                  flash(`স্লট ${bn(n)} খোলা হলো`);
+                } else flash("এই সেভটা খোলা যাচ্ছে না");
+              }),
+            );
+            row.append(meta, bSave, bLoad);
+            box.appendChild(row);
+          }
+        }
+        function saveNow() {
+          if (save()) flash("সেভ হয়েছে");
+          else flash("ব্রাউজারে সেভ করা যাচ্ছে না");
+        }
+        $("btnSave").addEventListener("click", saveNow);
+        $("btnExport").addEventListener("click", () => {
+          const d = snapshot(),
+            blob = new Blob([JSON.stringify(d)], { type: "application/json" }),
+            a = document.createElement("a");
+          a.href = URL.createObjectURL(blob);
+          a.download = `nagar-porikolpok-year${Math.floor(d.month / 12) + 1}-month${(d.month % 12) + 1}.json`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+          flash("শহরের ফাইল নামানো হলো");
+        });
+        $("btnImport").addEventListener("click", () => $("fileIn").click());
+        $("fileIn").addEventListener("change", (e) => {
+          const f = e.target.files[0];
+          e.target.value = "";
+          if (!f) return;
+          f.text().then((txt) => {
+            let d = null;
+            try {
+              d = JSON.parse(txt);
+            } catch (err) {}
+            if (restore(d)) {
+              save();
+              flash("ফাইল থেকে শহর খোলা হলো");
+            } else flash("এটা নগর পরিকল্পকের সেভ ফাইল না");
+          });
+        });
         let flashTimer;
         function flash(msg) {
           $("flash").textContent = msg;
@@ -2266,24 +2412,38 @@
           for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i);
           return u;
         };
+        // the whole city as plain JSON; the same format is used by the autosave, the slots and save files
+        function snapshot() {
+          return {
+            game: "nagar-porikolpok",
+            w: W,
+            type: enc(type),
+            lvl: enc(lvl),
+            trash: enc(new Uint8Array(trash.buffer)),
+            fill: enc(new Uint8Array(fill.buffer)),
+            res: enc(new Uint8Array(resAmt.buffer)),
+            owned: Array.from(owned),
+            funds: st.funds,
+            month: st.month,
+            tax: st.tax,
+            pop: S.pop,
+            savedAt: Date.now(),
+          };
+        }
+        const when = (t) => {
+          const d = new Date(t);
+          return bn(`${d.getDate()}/${d.getMonth() + 1} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`);
+        };
         function save() {
           try {
-            localStorage.setItem(
-              KEY,
-              JSON.stringify({
-                w: W,
-                type: enc(type),
-                lvl: enc(lvl),
-                trash: enc(new Uint8Array(trash.buffer)),
-                fill: enc(new Uint8Array(fill.buffer)),
-                res: enc(new Uint8Array(resAmt.buffer)),
-                owned: Array.from(owned),
-                funds: st.funds,
-                month: st.month,
-                tax: st.tax,
-              }),
-            );
-          } catch (e) {}
+            const d = snapshot();
+            localStorage.setItem(KEY, JSON.stringify(d));
+            $("saveInfo").textContent = "শেষ সেভ " + when(d.savedAt);
+            return true;
+          } catch (e) {
+            $("saveInfo").textContent = "ব্রাউজারে সেভ করা যাচ্ছে না";
+            return false;
+          }
         }
         let saveTimer;
         function saveSoon() {
@@ -2292,18 +2452,29 @@
         }
         function load() {
           try {
-            const d = JSON.parse(localStorage.getItem(KEY) || "null");
-            if (!d || d.w !== W) return false;
+            return restore(JSON.parse(localStorage.getItem(KEY) || "null"));
+          } catch (e) {
+            return false;
+          }
+        }
+        function restore(d) {
+          try {
+            if (!d || d.w !== W || !d.type || !d.lvl) return false;
+            // decode and check everything first, so a broken file never wipes the current city
+            const ty = dec(d.type),
+              lv2 = dec(d.lvl),
+              tr = new Float32Array(dec(d.trash).buffer),
+              fi = new Float32Array(dec(d.fill).buffer),
+              ra = d.res ? new Float32Array(dec(d.res).buffer) : null;
+            if (ty.length !== N || lv2.length !== N || tr.length !== N || fi.length !== N) return false;
+            if (!Array.isArray(d.owned) || d.owned.length !== PW * PW || !Number.isFinite(d.funds) || !Number.isFinite(d.month)) return false;
             makeTerrain();
-            type.set(dec(d.type));
-            lvl.set(dec(d.lvl));
-            trash.set(new Float32Array(dec(d.trash).buffer));
-            fill.set(new Float32Array(dec(d.fill).buffer));
+            type.set(ty);
+            lvl.set(lv2);
+            trash.set(tr);
+            fill.set(fi);
             owned.set(d.owned);
-            if (d.res) {
-              const a = new Float32Array(dec(d.res).buffer);
-              if (a.length === N) resAmt.set(a);
-            }
+            if (ra && ra.length === N) resAmt.set(ra);
             st.funds = d.funds;
             st.month = d.month;
             st.tax = d.tax;
@@ -5273,6 +5444,11 @@
         const keys = new Set();
         document.addEventListener("keydown", (e) => {
           if (e.target.tagName === "INPUT") return;
+          if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+            e.preventDefault(); // Ctrl+S saves the city instead of the web page
+            saveNow();
+            return;
+          }
           const map = {
             1: "road",
             2: "R",
@@ -5554,6 +5730,7 @@
         resize();
         setQuality(q0);
         if (!load()) seedSample();
+        drawSlots();
         snap();
         applyCam(cam);
         requestAnimationFrame(frame);
