@@ -805,7 +805,8 @@
             <h2>গতি</h2>
             <div class="seg" id="speed">
               <button data-s="0">থামাও</button><button data-s="1">১×</button
-              ><button data-s="2">২×</button><button data-s="3">৪×</button>
+              ><button data-s="2">২×</button><button data-s="3">৪×</button
+              ><button data-s="4">১০×</button>
             </div>
           </div>
           <div class="block">
@@ -931,6 +932,11 @@
                   ময়লার গাড়ি ভাগাড় বা চুল্লি থেকে রাস্তা ধরে ৪৫ ঘর পর্যন্ত
                   যায়। ময়লা জমলে জমির দাম কমে আর ভবন বাড়ে না। ভাগাড় একসময়
                   ভরে যায়, তবে চুল্লি কখনো ভরে না।
+                </li>
+                <li>
+                  সময়: ১× গতিতে ৫ সেকেন্ডে ১ দিন, ৩০ দিনে এক মাস। মাস শেষ হলে
+                  আয়-ব্যয় আর ভবনের বৃদ্ধি হিসাব হয়। তাড়াতাড়ি এগোতে ২×, ৪× বা
+                  ১০× বেছে নাও।
                 </li>
                 <li>
                   মূল রেললাইন মানচিত্রের এক মাথা থেকে আরেক মাথা পর্যন্ত গেছে।
@@ -1196,7 +1202,10 @@
           quality: "high",
           fps: 30,
           unlimited: true, // ore, oil and coal never run out (can be switched off under "খেলার নিয়ম")
+          day: 0, // 0..29 within the month; the city's books and growth are settled when a month ends
         };
+        // real seconds per game day at each speed (index = st.speed): 1x = 5 s a day, 30 days a month
+        const DAY_MS = [0, 5000, 2500, 1250, 500];
         const dem = { R: 0, C: 0, I: 0 },
           dShow = { R: 0, C: 0, I: 0 };
         let S = {
@@ -1459,6 +1468,7 @@
             if (type[i] === T.DUMP) fill[i] = DUMP_STORE * 0.25;
           st.funds = 20000;
           st.month = 0;
+          st.day = 0;
           st.tax = 9;
           refreshAll();
           fitCam(true);
@@ -1468,6 +1478,7 @@
           layMainLine();
           st.funds = 30000;
           st.month = 0;
+          st.day = 0;
           st.tax = 9;
           refreshAll();
           fitCam(true);
@@ -2440,9 +2451,12 @@
         }
 
         /* ---------- UI ---------- */
-        function updateUI() {
+        function drawDate() {
           $("date").textContent =
-            `${MONTHS[st.month % 12]}, বছর ${bn(Math.floor(st.month / 12) + 1)}`;
+            `${bn(st.day + 1)} ${MONTHS[st.month % 12]}, বছর ${bn(Math.floor(st.month / 12) + 1)}`;
+        }
+        function updateUI() {
+          drawDate();
           const f = $("sFunds");
           f.textContent = taka(st.funds);
           f.className = st.funds < 0 ? "neg" : "";
@@ -2842,6 +2856,7 @@
             owned: Array.from(owned),
             funds: st.funds,
             month: st.month,
+            day: st.day,
             tax: st.tax,
             pop: S.pop,
             unlimited: st.unlimited,
@@ -2896,6 +2911,7 @@
             if (ra && ra.length === N) resAmt.set(ra);
             st.funds = d.funds;
             st.month = d.month;
+            st.day = Number.isInteger(d.day) && d.day >= 0 && d.day < 30 ? d.day : 0;
             st.tax = d.tax;
             st.unlimited = d.unlimited !== false;
             if (st.unlimited) refillMines();
@@ -5504,7 +5520,7 @@
           else if (nTrucks > nT) removeCar(true);
           if (haveC < nC) spawnCar(false);
           else if (haveC > nC) removeCar(false);
-          const sp = [0, 0.9, 1.7, 2.8][st.speed] * dt;
+          const sp = [0, 0.9, 1.7, 2.8, 4][st.speed] * dt;
           for (const c of cars) {
             if (!isRd(type[c.a]) || !isRd(type[c.b])) {
               c.a = -1;
@@ -5661,7 +5677,7 @@
           for (const tr of trains) tr.kind === "p" ? haveP++ : haveF++;
           if (haveP < wantP && Math.random() < dt * 0.3) spawnTrain("p"); // trains turn up now and then, not all at once
           if (haveF < wantF && Math.random() < dt * 0.3) spawnTrain("f");
-          const pace = [0, 1, 1.8, 3][st.speed],
+          const pace = [0, 1, 1.8, 3, 4.5][st.speed],
             sp = 2.2 * pace * dt;
           for (const tr of trains) {
             if (tr.dwell > 0) {
@@ -6379,9 +6395,12 @@
           if (st.speed > 0) {
             acc += dt * 1000;
             simTime += dt * (reduce ? 0 : 1);
-            if (acc >= [0, 1500, 750, 350][st.speed]) {
-              acc = 0;
-              tick();
+            while (acc >= DAY_MS[st.speed]) {
+              acc -= DAY_MS[st.speed];
+              if (++st.day >= 30) {
+                st.day = 0;
+                tick(); // month end: income, upkeep and growth
+              } else drawDate();
             }
           }
           U.time.value = now / 1000;
