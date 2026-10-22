@@ -683,6 +683,16 @@
             <span class="sw" style="background: #2d5f86"></span>মালবাহী
             স্টেশন<small>৳৫,০০০</small>
           </button>
+          <button class="tool" data-tool="port">
+            <span class="sw" style="background: #1f4f6e"></span>নদীবন্দর<small
+              >৳৬,০০০</small
+            >
+          </button>
+          <button class="tool" data-tool="ferry">
+            <span class="sw" style="background: #e8e4da"></span>লঞ্চঘাট<small
+              >৳৩,০০০</small
+            >
+          </button>
           <h2>সেবা</h2>
           <button class="tool" data-tool="power">
             <span class="sw" style="background: var(--plant)"></span
@@ -849,7 +859,7 @@
             <div class="ledger">
               <span>কর আয়</span><span id="lInc">৳০</span>
               <span>সম্পদ বিক্রি</span><span id="lRes">—</span>
-              <span>রেল আয়</span><span id="lRail">—</span>
+              <span>পরিবহন আয়</span><span id="lRail">—</span>
               <span>রক্ষণাবেক্ষণ</span><span id="lUp">৳০</span>
               <span>বিদ্যুৎ</span><span id="lPow">০ / ০</span> <span>পানি</span
               ><span id="lWat">০ / ০</span> <span>পয়ঃনিষ্কাশন</span
@@ -870,7 +880,7 @@
               ><button data-o="poll">দূষণ</button
               ><button data-o="lv">জমির মান</button
               ><button data-o="res">সম্পদ</button
-              ><button data-o="rail">রেল</button
+              ><button data-o="rail">পরিবহন</button
               ><button data-o="plots">এলাকা</button>
             </div>
             <div class="legend" id="resLegend" hidden>
@@ -946,6 +956,11 @@
                   রপ্তানি হয়। রেললাইন রাস্তা পেরোলে লেভেল ক্রসিং হয়।
                 </li>
                 <li>
+                  নদীর পাড়ে লঞ্চঘাট বসালে আশেপাশের মানুষ লঞ্চে চড়ে, আর নদীবন্দর
+                  বসালে রাস্তা ধরে ৩০ ঘরের মধ্যের কারখানার মাল জাহাজে রপ্তানি হয়।
+                  ব্রিজগুলো উঁচু, তাই জাহাজ নিচ দিয়ে যায়।
+                </li>
+                <li>
                   মানচিত্রে প্রাকৃতিক সম্পদ আছে ("সম্পদ" স্তরে দেখো)। তার ওপর
                   শিল্প জোন করলে বিশেষ শিল্প হয়: উর্বর জমিতে কৃষি খামার, বনে
                   কাঠশিল্প, আর লোহা, তেল ও কয়লার খনি। এগুলোতে চাকরি আর আয়
@@ -994,6 +1009,8 @@
           CROSS: 14, // level crossing: a road and a railway on the same tile
           PSTN: 15, // passenger station
           FSTN: 16, // freight (cargo) station
+          PORT: 17, // river cargo port
+          FERRY: 18, // launch ghat (passenger ferry terminal)
         };
         const CAP = {
           3: [0, 20, 60, 140],
@@ -1019,6 +1036,8 @@
           cross: 30,
           pstation: 4000,
           fstation: 5000,
+          port: 6000,
+          ferry: 3000,
         };
         const TOOL_T = {
           road: T.ROAD,
@@ -1035,8 +1054,10 @@
           rail: T.RAIL,
           pstation: T.PSTN,
           fstation: T.FSTN,
+          port: T.PORT,
+          ferry: T.FERRY,
         };
-        const ON_BANK = new Set([T.PUMP, T.OUTLET, T.TREAT]);
+        const ON_BANK = new Set([T.PUMP, T.OUTLET, T.TREAT, T.PORT, T.FERRY]);
         const PLANT_CAP = 1000,
           PUMP_CAP = 700,
           OUTLET_CAP = 800,
@@ -1052,6 +1073,8 @@
           [T.PARK]: 3,
           [T.PSTN]: 60,
           [T.FSTN]: 80,
+          [T.PORT]: 100,
+          [T.FERRY]: 40,
         };
         const DUMP_STORE = 40000,
           DUMP_RATE = 1000,
@@ -1133,6 +1156,8 @@
           14: "লেভেল ক্রসিং",
           15: "যাত্রী স্টেশন",
           16: "মালবাহী স্টেশন",
+          17: "নদীবন্দর",
+          18: "লঞ্চঘাট",
         };
         const BN = "০১২৩৪৫৬৭৮৯";
         const bn = (s) => String(s).replace(/\d/g, (d) => BN[d]);
@@ -1445,6 +1470,9 @@
             [30, 8],
           ])
             setT(O + x, O + y, T.OUTLET); // outlets downstream, by the second bridge
+          r(25, 28, 14, 14, T.ROAD); // quay road to the cargo port
+          setT(O + 26, O + 13, T.PORT);
+          setT(O + 1, O + 12, T.FERRY);
           layMainLine();
           setT(O + 16, O + 31, T.PSTN); // stations on the main line, each at the end of a street
           setT(O + 24, O + 31, T.FSTN);
@@ -1525,7 +1553,48 @@
         for (let dy = -2; dy <= 2; dy++)
           for (let dx = -2; dx <= 2; dx++)
             if (Math.abs(dx) + Math.abs(dy) <= 2) NEAR2.push([dx, dy]);
+        /* bridges climb from the banks to BRIDGE_H over the middle of the river. For each bridge tile:
+           deck height at its two ends along the bridge (bh0, bh1) and which way the bridge runs (bAx 1 = along x) */
+        const BRIDGE_H = 0.32,
+          BRIDGE_K = 0.34, // rise per tile on the ramps
+          bh0 = new Float32Array(N),
+          bh1 = new Float32Array(N),
+          bAx = new Uint8Array(N);
+        function computeBridges() {
+          bh0.fill(0);
+          bh1.fill(0);
+          const wet = (X, Y) => (X >= 0 && Y >= 0 && X < W && Y < H ? terrain[Y * W + X] : riverAt(X, Y));
+          for (let i = 0; i < N; i++) {
+            const t = type[i];
+            if (!terrain[i] || !(isRd(t) || isRl(t))) continue;
+            const x = i % W,
+              y = (i / W) | 0,
+              same = (X, Y) => X >= 0 && Y >= 0 && X < W && Y < H && (isRd(t) ? isRd(type[Y * W + X]) : isRl(type[Y * W + X]));
+            const alongX = !(same(x, y - 1) || same(x, y + 1)),
+              dx = alongX ? 1 : 0,
+              dz = alongX ? 0 : 1;
+            let a = 0,
+              b = 0;
+            while (a < 12 && wet(x - dx * (a + 1), y - dz * (a + 1))) a++;
+            while (b < 12 && wet(x + dx * (b + 1), y + dz * (b + 1))) b++;
+            const hAt = (u) => Math.min(BRIDGE_H, BRIDGE_K * Math.min(u + a, 1 + b - u));
+            bh0[i] = hAt(0);
+            bh1[i] = hAt(1);
+            bAx[i] = alongX ? 1 : 0;
+          }
+        }
+        // deck height under a world point (0 off the bridges), for cars and trains
+        function deckAt(X, Z) {
+          const x = Math.floor(X),
+            y = Math.floor(Z);
+          if (x < 0 || y < 0 || x >= W || y >= H) return 0;
+          const i = y * W + x;
+          if (!bh0[i] && !bh1[i]) return 0;
+          const f = bAx[i] ? X - x : Z - y;
+          return bh0[i] + (bh1[i] - bh0[i]) * f;
+        }
         function computeRoadNear() {
+          computeBridges();
           roadNear.fill(0);
           roadTiles = [];
           for (let i = 0; i < N; i++) {
@@ -1925,8 +1994,12 @@
             fOff = 0,
             riders = 0,
             freight = 0,
-            track = 0;
-          const pst = [];
+            track = 0,
+            ferries = 0,
+            ports = 0,
+            portsNoRoad = 0;
+          const pst = [],
+            portList = [];
           for (let i = 0; i < N; i++) {
             const t = type[i];
             if (t === T.PSTN) {
@@ -1936,6 +2009,15 @@
               } else pOff++;
             } else if (t === T.FSTN) railConn[i] ? fOn++ : fOff++;
             else if ((t === T.RAIL || t === T.CROSS) && owned[plotOf(i)]) track++;
+            else if (t === T.FERRY) {
+              ferries++; // the river always reaches the edge of the map, so ghats and ports are always connected
+              pst.push(i);
+              portList.push({ x: (i % W) + 0.5, z: ((i / W) | 0) + 0.5, kind: "launch" });
+            } else if (t === T.PORT) {
+              ports++;
+              portList.push({ x: (i % W) + 0.5, z: ((i / W) | 0) + 0.5, kind: "cargo" });
+              if (!nb(i).some((j) => isRd(type[j]))) portsNoRoad++;
+            }
           }
           if (pst.length)
             for (let i = 0; i < N; i++) {
@@ -1957,7 +2039,7 @@
               riders += t === T.R ? CAP[3][lvl[i]] : CAP[4][lvl[i]] * 0.5;
             }
           for (let i = 0; i < N; i++) {
-            if (type[i] !== T.FSTN || !railConn[i]) continue;
+            if (!((type[i] === T.FSTN && railConn[i]) || type[i] === T.PORT)) continue;
             const dist = new Map(),
               rq = [];
             for (const j of nb(i))
@@ -2008,11 +2090,11 @@
             if ((type[i] === T.RAIL || type[i] === T.CROSS) && owned[plotOf(i)]) nudge(i, 1, -0.03);
           ledger.rail = Math.round(riders * 0.05 + freight);
           ledger.up += Math.round(track * 0.5);
-          if (pOn) {
-            dem.R += 0.08 * Math.min(2, pOn); // the train brings newcomers and shoppers
-            dem.C += 0.06 * Math.min(2, pOn);
+          if (pOn + ferries) {
+            dem.R += 0.08 * Math.min(2, pOn + ferries); // trains and launches bring newcomers and shoppers
+            dem.C += 0.06 * Math.min(2, pOn + ferries);
           }
-          if (fOn && freight > 0) dem.I += 0.12;
+          if ((fOn || ports) && freight > 0) dem.I += 0.12;
           Object.assign(S, {
             pstnOn: pOn,
             pstnOff: pOff,
@@ -2020,6 +2102,10 @@
             fstnOff: fOff,
             riders: Math.round(riders),
             freight: Math.round(freight),
+            ferries,
+            ports,
+            portsNoRoad,
+            portList,
           });
         }
         function recompute() {
@@ -2296,6 +2382,8 @@
               "hint",
               `${bn(S.pstnOff + S.fstnOff)}টি স্টেশন মূল রেললাইনের সাথে যুক্ত নয়। রেললাইন দিয়ে জোড়ো।`,
             ]);
+          if (S.portsNoRoad)
+            out.push(["hint", `${bn(S.portsNoRoad)}টি নদীবন্দরের পাশে রাস্তা নেই, তাই মাল আসছে না।`]);
           if (S.pop > 3000 && !n(T.PSTN))
             out.push([
               "hint",
@@ -2306,7 +2394,7 @@
               "hint",
               "মালবাহী স্টেশন বসাও: কারখানা আর খনির মাল ট্রেনে রপ্তানি হলে আয় বাড়বে।",
             ]);
-          else if (S.fstnOn && !S.freight)
+          else if ((S.fstnOn || S.ports) && !S.freight)
             out.push(["hint", "মালবাহী স্টেশনের ৩০ ঘরের মধ্যে কোনো শিল্প নেই।"]);
           if (ledger.inc + ledger.res + ledger.rail - ledger.up < 0 && st.funds >= 0)
             out.push(["hint", "মাসিক হিসাব ঘাটতিতে চলছে।"]);
@@ -2469,7 +2557,7 @@
           $("lInc").textContent = taka(ledger.inc);
           $("lUp").textContent = taka(ledger.up);
           $("lRail").textContent =
-            S.pstnOn + S.fstnOn ? `${taka(ledger.rail)} · ${fmt(S.riders)} যাত্রী` : "—";
+            S.pstnOn + S.fstnOn + S.ports + S.ferries ? `${taka(ledger.rail)} · ${fmt(S.riders)} যাত্রী` : "—";
           $("lRes").textContent = S.nSpec
             ? `${taka(ledger.res)} · ${bn(S.nSpec)}টি`
             : "—";
@@ -4372,19 +4460,7 @@
             w = isR(x - 1, y),
             e = isR(x + 1, y),
             arms = n + s + w + e;
-          if (terrain[i]) {
-            // bridge deck, piers and railings
-            box(x, y, x + 1, y + 1, -0.14, 0, K.concrete);
-            if ((x + y) % 2 === 0)
-              cyl(x + 0.5, y + 0.5, 0.09, -0.36, -0.14, K.concrete);
-            if (n || s) {
-              box(x + 0.02, y, x + 0.05, y + 1, 0.03, 0.11, K.concrete);
-              box(x + 0.95, y, x + 0.98, y + 1, 0.03, 0.11, K.concrete);
-            } else {
-              box(x, y + 0.02, x + 1, y + 0.05, 0.03, 0.11, K.concrete);
-              box(x, y + 0.95, x + 1, y + 0.98, 0.03, 0.11, K.concrete);
-            }
-          }
+          if (terrain[i]) return drawDeck(x, y, i, false);
           flat(x, y, x + 1, y + 1, 0, 0.03, K.walk);
           const a = 0.15,
             b = 0.85;
@@ -4502,18 +4578,7 @@
           if (e) arms.push([1, 0]);
           if (!arms.length) arms = [[-1, 0], [1, 0]];
           const y0 = onRoad ? 0.04 : 0.03;
-          if (!onRoad && i >= 0 && terrain[i]) {
-            // rail bridge: deck, pier and steel girders along both sides
-            box(x, y, x + 1, y + 1, -0.14, 0, K.concrete);
-            if ((x + y) % 2 === 0) cyl(x + 0.5, y + 0.5, 0.09, -0.36, -0.14, K.concrete);
-            if (n || s2) {
-              box(x + 0.08, y, x + 0.12, y + 1, 0, 0.2, K.steel);
-              box(x + 0.88, y, x + 0.92, y + 1, 0, 0.2, K.steel);
-            } else {
-              box(x, y + 0.08, x + 1, y + 0.12, 0, 0.2, K.steel);
-              box(x, y + 0.88, x + 1, y + 0.92, 0, 0.2, K.steel);
-            }
-          }
+          if (!onRoad && i >= 0 && terrain[i]) return drawDeck(x, y, i, true);
           const cx = x + 0.5,
             cz = y + 0.5;
           for (const [dx, dz] of arms) {
@@ -4540,6 +4605,90 @@
             }
           }
           return 0.1;
+        }
+        // one bridge tile: every piece follows the deck as it climbs from bh0 to bh1 along the bridge
+        function drawDeck(x, y, i, rail) {
+          const h0 = bh0[i],
+            h1 = bh1[i],
+            ax = bAx[i] === 1;
+          // a sloped slab between a0..a1 along the bridge and c0..c1 across it, y0..y1 above the deck
+          const S = (a0, a1, c0, c1, y0, y1, col, kind) => {
+            const ha = h0 + (h1 - h0) * a0,
+              hb = h0 + (h1 - h0) * a1,
+              L = a1 - a0,
+              Wd = c1 - c0,
+              th = y1 - y0,
+              oy = (ha + hb) / 2 + y0;
+            add(
+              kind || "flat",
+              ax
+                ? [L, hb - ha, 0, 0, 0, th, 0, 0, 0, 0, Wd, 0, x + (a0 + a1) / 2, oy, y + (c0 + c1) / 2, 1]
+                : [Wd, 0, 0, 0, 0, th, 0, 0, 0, hb - ha, L, 0, x + (c0 + c1) / 2, oy, y + (a0 + a1) / 2, 1],
+              col,
+            );
+          };
+          S(0, 1, 0, 1, -0.08, 0, K.concrete, "box"); // deck
+          if (Math.min(h0, h1) > 0.12 && (x + y) % 2 === 0)
+            cyl(x + 0.5, y + 0.5, 0.08, -0.36, Math.min(h0, h1) - 0.08, K.concrete); // pier
+          if (rail) {
+            S(0, 1, 0.26, 0.74, 0, 0.03, K.ballast);
+            for (const a of [0.1, 0.35, 0.6, 0.85]) S(a, a + 0.06, 0.32, 0.68, 0.03, 0.045, K.sleeper);
+            S(0, 1, 0.388, 0.412, 0.045, 0.07, K.railSteel);
+            S(0, 1, 0.588, 0.612, 0.045, 0.07, K.railSteel);
+            S(0, 1, 0.08, 0.12, 0, 0.2, K.steel, "box"); // girders
+            S(0, 1, 0.88, 0.92, 0, 0.2, K.steel, "box");
+          } else {
+            S(0, 1, 0, 1, 0, 0.03, K.walk);
+            S(0, 1, 0.15, 0.85, 0, 0.04, K.asphalt);
+            S(0, 1, 0.482, 0.518, 0.04, 0.042, K.mark);
+            S(0, 1, 0.02, 0.05, 0.03, 0.11, K.concrete, "box"); // railings
+            S(0, 1, 0.95, 0.98, 0.03, 0.11, K.concrete, "box");
+          }
+          return Math.max(h0, h1) + 0.2;
+        }
+        // river buildings: u runs along the bank, v from the land side (0) out over the water (>1)
+        function bankRect(x, y, d, u0, u1, v0, v1) {
+          if (d[1]) {
+            const z0 = d[1] < 0 ? y + 1 - v1 : y + v0,
+              z1 = d[1] < 0 ? y + 1 - v0 : y + v1;
+            return [x + u0, z0, x + u1, z1];
+          }
+          const x0 = d[0] < 0 ? x + 1 - v1 : x + v0,
+            x1 = d[0] < 0 ? x + 1 - v0 : x + v1;
+          return [x0, y + u0, x1, y + u1];
+        }
+        function drawPort(x, y, i) {
+          const d = riverSide(x, y),
+            h = hash(i),
+            bankX = d[1] !== 0,
+            R = (u0, u1, v0, v1, y0, y1, c, w) => box(...bankRect(x, y, d, u0, u1, v0, v1), y0, y1, c, w);
+          R(0, 1, 0, 1.3, -0.12, 0.03, K.concrete); // quay reaching out over the water
+          R(0.08, 0.92, 0.05, 0.42, 0.03, 0.38, pick(PAL.shed, h), [1, 0.35, 0.2, i]); // warehouse
+          prism(...bankRect(x, y, d, 0.05, 0.95, 0.03, 0.44), 0.38, 0.12, pick(PAL.metal, h), bankX);
+          for (const u of [0.3, 0.66]) for (const v of [0.55, 0.98]) R(u, u + 0.05, v, v + 0.05, 0.03, 0.95, K.yellow); // crane legs
+          R(0.3, 0.71, 0.55, 0.6, 0.88, 0.95, K.yellow);
+          R(0.3, 0.71, 0.98, 1.03, 0.88, 0.95, K.yellow);
+          R(0.46, 0.54, 0.4, 1.9, 0.95, 1.02, K.yellow); // boom out over the water
+          R(0.44, 0.56, 0.36, 0.5, 0.86, 1.02, K.dark);
+          R(0.47, 0.53, 1.5, 1.56, 0.62, 0.95, K.dark); // hook line
+          R(0.08, 0.28, 0.62, 0.94, 0.03, 0.15, pick(PAL.container, h));
+          R(0.74, 0.94, 0.62, 0.94, 0.03, 0.15, pick(PAL.container, (h * 7) % 1));
+          R(0.74, 0.94, 0.62, 0.94, 0.15, 0.27, pick(PAL.container, (h * 13) % 1));
+          return 1.02;
+        }
+        function drawFerry(x, y, i) {
+          const d = riverSide(x, y),
+            bankX = d[1] !== 0,
+            R = (u0, u1, v0, v1, y0, y1, c, w) => box(...bankRect(x, y, d, u0, u1, v0, v1), y0, y1, c, w);
+          R(0.1, 0.9, 0.08, 0.5, 0, 0.28, K.station, [1, 0.28, 0.12, i]); // ticket hall
+          prism(...bankRect(x, y, d, 0.06, 0.94, 0.05, 0.53), 0.28, 0.12, K.coach, bankX);
+          R(0.43, 0.57, 0.5, 1.02, -0.02, 0.0, K.steel); // gangway down to the pontoon
+          R(0.1, 0.9, 1.0, 1.42, -0.12, -0.06, K.wagon); // floating pontoon
+          R(0.3, 0.7, 1.1, 1.32, -0.06, 0.07, K.station);
+          const [lx0, lz0, lx1, lz1] = bankRect(x, y, d, 0.47, 0.53, 0.52, 0.56);
+          lit(lx0, lz0, lx1, lz1, 0.24, 0.28, K.lamp);
+          glow((lx0 + lx1) / 2, (lz0 + lz1) / 2, 0.5, K.lamp);
+          return 0.4;
         }
         // stations straddle a straight piece of track; the building faces the street
         function drawStation(x, y, i) {
@@ -4704,6 +4853,8 @@
               } else if (isRd(t)) top = drawRoad(x, y, i);
               else if (t === T.RAIL) top = drawRail(x, y, i, false);
               else if (t === T.PSTN || t === T.FSTN) top = drawStation(x, y, i);
+              else if (t === T.PORT) top = drawPort(x, y, i);
+              else if (t === T.FERRY) top = drawFerry(x, y, i);
               else if (t === T.R) top = drawRes(x, y, L, i, h, h2, h3);
               else if (t === T.C) top = drawCom(x, y, L, i, h, h2, h3);
               else if (t === T.I) {
@@ -5282,6 +5433,7 @@
                 f = `rgba(44,140,110,${(lv[i] * 0.85).toFixed(2)})`;
               else if (o === "rail") {
                 if (isRl(t)) f = railConn[i] ? good + ".8)" : bad + ".8)";
+                else if (t === T.PORT || t === T.FERRY) f = good + ".8)";
                 else if (pCov[i]) f = blue + ".35)";
                 else if (fCov[i] && lvl[i]) f = brown + ".55)";
                 else continue;
@@ -5562,9 +5714,10 @@
               rot = Math.atan2(-dz, dx);
             const len = c.truck ? 0.3 : 0.22,
               col = c.truck ? K.truck : PAL.car[c.c];
-            setM(A, k * 16, X, 0.04, Z, len, c.truck ? 0.1 : 0.06, 0.11, rot);
-            if (c.truck) setM(B, k * 16, X - dx * 0.04, 0.14, Z - dz * 0.04, 0.2, 0.06, 0.11, rot);
-            else setM(B, k * 16, X - dx * 0.01, 0.1, Z - dz * 0.01, 0.12, 0.045, 0.095, rot);
+            const yb = deckAt(X, Z);
+            setM(A, k * 16, X, 0.04 + yb, Z, len, c.truck ? 0.1 : 0.06, 0.11, rot);
+            if (c.truck) setM(B, k * 16, X - dx * 0.04, 0.14 + yb, Z - dz * 0.04, 0.2, 0.06, 0.11, rot);
+            else setM(B, k * 16, X - dx * 0.01, 0.1 + yb, Z - dz * 0.01, 0.12, 0.045, 0.095, rot);
             const tc = c.truck ? K.truckBox : CAR_TOP[c.c];
             cA[k * 3] = col.r;
             cA[k * 3 + 1] = col.g;
@@ -5574,8 +5727,8 @@
             cB[k * 3 + 2] = tc.b;
             if (carLightMesh.visible) {
               const fx = X + dx * len * 0.5, fz = Z + dz * len * 0.5;
-              setM(Lm, l++ * 16, fx - lx * 0.035, 0.06, fz - lz * 0.035, 0.025, 0.02, 0.025, rot);
-              setM(Lm, l++ * 16, fx + lx * 0.035, 0.06, fz + lz * 0.035, 0.025, 0.02, 0.025, rot);
+              setM(Lm, l++ * 16, fx - lx * 0.035, 0.06 + yb, fz - lz * 0.035, 0.025, 0.02, 0.025, rot);
+              setM(Lm, l++ * 16, fx + lx * 0.035, 0.06 + yb, fz + lz * 0.035, 0.025, 0.02, 0.025, rot);
             }
             k++;
           }
@@ -5751,7 +5904,7 @@
               const rot = Math.atan2(-dz, dx),
                 X = px + 0.5,
                 Z = pz + 0.5,
-                y0 = 0.07,
+                y0 = 0.07 + deckAt(X, Z),
                 loco = c === 0,
                 pass = tr.kind === "p";
               let body, top;
@@ -5786,6 +5939,153 @@
           trainBody.instanceMatrix.needsUpdate = trainTop.instanceMatrix.needsUpdate = true;
           trainBody.instanceColor.needsUpdate = trainTop.instanceColor.needsUpdate = true;
           trainGeo.attributes.aWin.needsUpdate = true;
+        }
+
+        /* ---- river traffic: cargo ships for ports, double-deck launches for ghats, and country boats ---- */
+        const riverMidZ = (x) => Math.round(riverMid(x)) - 1 + riverW(x) / 2;
+        function riverC(xf) {
+          // the river's centre line, smoothed over a few columns so boats glide instead of zig-zagging
+          const x0 = Math.floor(xf),
+            f = xf - x0,
+            avg = (x) => (riverMidZ(x - 2) + riverMidZ(x - 1) + riverMidZ(x) + riverMidZ(x + 1) + riverMidZ(x + 2)) / 5;
+          return avg(x0) + (avg(x0 + 1) - avg(x0)) * f;
+        }
+        const MAXSB = 220,
+          MAXST = 260;
+        const shipGeo = G.box.clone();
+        shipGeo.setAttribute("aWin", new THREE.InstancedBufferAttribute(new Float32Array(MAXSB * 4), 4));
+        const shipBody = new THREE.InstancedMesh(shipGeo, matBuild, MAXSB),
+          shipTop = new THREE.InstancedMesh(G.box, matPlain, MAXST);
+        for (const m of [shipBody, shipTop]) {
+          m.frustumCulled = false;
+          m.count = 0;
+          m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+          m.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(m === shipBody ? MAXSB * 3 : MAXST * 3), 3);
+          scene.add(m);
+        }
+        const SHIPC = {
+          hull: C3(0x7a2e2a),
+          white: C3(0xeeeee8),
+          roof: C3(0x4f86b5),
+          stripe: C3(0xc23b30),
+          wood: C3(0x6b4a2b),
+          straw: C3(0xc9a35a),
+          sail: C3(0xf1ece0),
+        };
+        let ships = [];
+        function spawnShip(kind) {
+          const dir = Math.random() < 0.5 ? 1 : -1,
+            x = dir > 0 ? -M : W + M;
+          for (const sh of ships) if (sh.dir === dir && Math.abs(sh.x - x) < 6) return; // keep a gap at the river mouth
+          ships.push({
+            kind,
+            dir,
+            x,
+            dwell: 0,
+            visited: new Set(),
+            seed: (Math.random() * 997) | 0,
+            lane: kind === "boat" ? (Math.random() - 0.5) * 1.1 : -0.42 * dir, // big ships keep to the left
+            sail: Math.random() < 0.5,
+          });
+          const sh = ships[ships.length - 1];
+          sh.laneT = sh.home = sh.lane;
+        }
+        function updateShips(dt) {
+          const want = {
+            cargo: reduce || !S.ports ? 0 : 1 + Math.min(3, S.ports),
+            launch: reduce || !S.ferries ? 0 : 1 + Math.min(3, S.ferries),
+            boat: reduce ? 0 : 4,
+          };
+          const have = { cargo: 0, launch: 0, boat: 0 };
+          for (const sh of ships) have[sh.kind]++;
+          for (const k in want) if (have[k] < want[k] && Math.random() < dt * 0.25) spawnShip(k);
+          const pace = [0, 1, 1.8, 3, 4.5][st.speed];
+          for (const sh of ships) {
+            sh.lane += (sh.laneT - sh.lane) * Math.min(1, dt * pace * 1.5); // drift towards the quay and back out
+            if (sh.dwell > 0) {
+              sh.dwell -= dt * pace;
+              if (sh.dwell <= 0) sh.laneT = sh.home;
+              continue;
+            }
+            const step = (sh.kind === "cargo" ? 0.5 : sh.kind === "launch" ? 0.7 : 0.3) * pace * dt,
+              nx = sh.x + sh.dir * step;
+            for (const p of S.portList || [])
+              if (p.kind === sh.kind && !sh.visited.has(p.x) && (sh.x - p.x) * (nx - p.x) <= 0) {
+                sh.visited.add(p.x); // tie up at the port or ghat for a while
+                sh.dwell = 4;
+                sh.x = p.x;
+                sh.laneT = (p.z > riverC(p.x) ? 1 : -1) * 0.75; // pull alongside the bank the port is on
+                break;
+              }
+            if (!sh.dwell) sh.x = nx;
+            if (sh.x < -M - 2 || sh.x > W + M + 2) sh.dead = true;
+          }
+          let live = 0;
+          for (let r = 0; r < ships.length; r++) if (!ships[r].dead) ships[live++] = ships[r];
+          ships.length = live;
+          // lay out each vessel's parts around its centre
+          const A = shipBody.instanceMatrix.array,
+            Bm = shipTop.instanceMatrix.array,
+            cA = shipBody.instanceColor.array,
+            cB = shipTop.instanceColor.array,
+            wA = shipGeo.attributes.aWin.array;
+          let kb = 0,
+            kt = 0;
+          const t = U.time.value;
+          for (const sh of ships) {
+            if (kb > MAXSB - 6 || kt > MAXST - 6) break;
+            const zc = riverC(sh.x) + sh.lane,
+              slope = riverC(sh.x + 0.5) - riverC(sh.x - 0.5),
+              hx = sh.dir,
+              hz = slope * sh.dir,
+              hl = Math.hypot(hx, hz),
+              ux = hx / hl,
+              uz = hz / hl,
+              rot = Math.atan2(-uz, ux),
+              bob = Math.sin(t * 1.3 + sh.seed) * 0.006 - 0.1;
+            // part at `a` along the heading and `c` across it, from y0 to y1 above the water
+            const part = (top, a, c, L, Wd, y0, y1, col, win) => {
+              const X = sh.x + ux * a - uz * c,
+                Z = zc + uz * a + ux * c;
+              if (top) {
+                setM(Bm, kt * 16, X, bob + y0, Z, L, y1 - y0, Wd, rot);
+                cB[kt * 3] = col.r;
+                cB[kt * 3 + 1] = col.g;
+                cB[kt * 3 + 2] = col.b;
+                kt++;
+              } else {
+                setM(A, kb * 16, X, bob + y0, Z, L, y1 - y0, Wd, rot);
+                cA[kb * 3] = col.r;
+                cA[kb * 3 + 1] = col.g;
+                cA[kb * 3 + 2] = col.b;
+                wA.set(win || [0, 0.3, 0.2, 0], kb * 4);
+                kb++;
+              }
+            };
+            if (sh.kind === "cargo") {
+              part(false, 0, 0, 1.5, 0.36, -0.05, 0.05, SHIPC.hull);
+              part(false, 0.82, 0, 0.16, 0.22, -0.05, 0.05, SHIPC.hull);
+              part(false, -0.55, 0, 0.24, 0.3, 0.05, 0.22, SHIPC.white, [1, 0.08, 0.08, sh.seed]);
+              for (let k = 0; k < 3; k++) part(true, -0.2 + k * 0.3, 0, 0.28, 0.3, 0.05, 0.17, pick(PAL.container, hash(sh.seed * 7 + k)));
+              part(true, -0.62, 0, 0.06, 0.06, 0.22, 0.3, K.dark);
+            } else if (sh.kind === "launch") {
+              part(false, 0, 0, 1.3, 0.34, -0.05, 0.03, SHIPC.white);
+              part(false, 0.72, 0, 0.14, 0.2, -0.05, 0.03, SHIPC.white);
+              part(false, 0, 0, 1.1, 0.32, 0.03, 0.12, SHIPC.white, [2, 0.09, 1, sh.seed]);
+              part(false, -0.1, 0, 0.75, 0.3, 0.12, 0.2, SHIPC.white, [2, 0.08, 1, sh.seed + 1]);
+              part(true, -0.1, 0, 0.8, 0.32, 0.2, 0.215, SHIPC.roof);
+              part(true, 0, 0, 1.31, 0.35, 0.0, 0.02, SHIPC.stripe);
+            } else {
+              part(false, 0, 0, 0.48, 0.13, -0.04, 0.0, SHIPC.wood);
+              part(true, -0.02, 0, 0.2, 0.12, 0.0, 0.05, SHIPC.straw);
+              if (sh.sail) part(true, 0.1, 0, 0.18, 0.012, 0.0, 0.26, SHIPC.sail);
+            }
+          }
+          shipBody.count = kb;
+          shipTop.count = kt;
+          shipBody.instanceMatrix.needsUpdate = shipTop.instanceMatrix.needsUpdate = true;
+          shipBody.instanceColor.needsUpdate = shipTop.instanceColor.needsUpdate = true;
+          shipGeo.attributes.aWin.needsUpdate = true;
         }
 
         function setTod(t) {
@@ -6322,7 +6622,9 @@
             parts.push(railConn[i] ? "মূল রেললাইনের সাথে যুক্ত" : "মূল রেললাইনের সাথে যুক্ত নয়");
             if (t === T.PSTN && railConn[i]) parts.push(`শহরের মোট যাত্রী মাসে ${fmt(S.riders)}`);
             if (t === T.FSTN && railConn[i]) parts.push(`মালভাড়া মাসে ${taka(S.freight)}`);
-          } else if (pCov[i]) parts.push("কাছে ট্রেন স্টেশন আছে");
+          } else if (t === T.PORT) parts.push(`জাহাজে মাল রপ্তানি · মোট মালভাড়া মাসে ${taka(S.freight)}`);
+          else if (t === T.FERRY) parts.push(`লঞ্চে যাত্রী ওঠে · শহরের মোট যাত্রী মাসে ${fmt(S.riders)}`);
+          else if (pCov[i]) parts.push("কাছে স্টেশন বা লঞ্চঘাট আছে");
           parts.push(
             `দূষণ ${bn(Math.round(poll[i] * 100))}%`,
             `জমির মান ${bn(Math.round(lv[i] * 100))}%`,
@@ -6447,6 +6749,7 @@
             waterNormal.offset.y += dt * 0.002;
             updateCars(dt);
             updateTrains(dt);
+            updateShips(dt);
             updateSmoke();
             redraw = true;
           }
