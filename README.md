@@ -1,0 +1,31 @@
+# নগর পরিকল্পক (Nagar Porikolpok)
+
+ব্রাউজারে চলা একটা হালকা 3D city-builder গেম, পুরো বাংলায়। কোনো ইনস্টল লাগে না।
+
+**▶ খেলো:** https://aqshanto.github.io/City-Builder/
+
+A lightweight 3D city builder that runs in the browser, with a Bengali interface and a Bangladeshi touch: rivers, rooftop water tanks, paddy fields, cars that keep left.
+
+## যা আছে
+- রাস্তা, আবাসিক, বাণিজ্যিক আর শিল্প জোন
+- বিদ্যুৎ, পানি, পয়ঃনিষ্কাশন আর ময়লা সংগ্রহ
+- প্রাকৃতিক সম্পদ আর বিশেষ শিল্প: কৃষি, বন, লোহা, তেল, কয়লা
+- ৯টি এলাকার বড় মানচিত্র, জনসংখ্যা বাড়লে নতুন এলাকা কেনা যায়
+- আসল 3D: ঘোরানো আর হেলানো যায় এমন ক্যামেরা, ছায়া, দিন-সন্ধ্যা-রাত
+
+## নিয়ন্ত্রণ
+| কাজ | কীভাবে |
+|---|---|
+| আঁকা | বাম-ক্লিক করে টানো |
+| ঘোরানো আর হেলানো | মাঝের বাটন (বা Alt + বাম-ক্লিক) চেপে টানো, অথবা Q E / R F |
+| সরানো | ডান-ক্লিক চেপে টানো, অথবা W A S D |
+| জুম | মাউসের চাকা |
+| থামানো বা চালানো | Space |
+
+গেম ধীরে চললে ডান পাশে "হালকা" মোড আর "৩০ fps" বেছে নাও।
+
+## নিজের পিসিতে চালাতে
+`nagar-porikolpok.html` আর `three.min.js` একই ফোল্ডারে রেখে HTML ফাইলে ডাবল-ক্লিক করো। Chrome বা Edge-এ সবচেয়ে ভালো চলে।
+
+## টেকনোলজি
+HTML, CSS, JavaScript আর [Three.js](https://threejs.org) r149 (MIT লাইসেন্স, `three.min.js` হিসেবে রাখা)। বিস্তারিত নিয়ম আর রোডম্যাপ আছে [PROJECT_PLAN.md](PROJECT_PLAN.md)-এ।
