@@ -1128,6 +1128,98 @@
         font-size: 0.78rem;
         color: var(--muted);
       }
+      /* rank, milestone bar, loans, budget, locked tools */
+      .rank {
+        display: inline-block;
+        margin-top: 2px;
+        padding: 1px 9px;
+        border-radius: 999px;
+        font-size: 0.74rem;
+        font-weight: 600;
+        color: var(--accent);
+        border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+      }
+      .mbar {
+        height: 8px;
+        border-radius: 4px;
+        background: color-mix(in srgb, var(--ink) 10%, transparent);
+        overflow: hidden;
+      }
+      .mbar i {
+        display: block;
+        height: 100%;
+        width: 0;
+        border-radius: 4px;
+        background: var(--accent);
+        transition: width 0.5s;
+      }
+      details.card > summary small {
+        font-weight: 400;
+        color: var(--muted);
+        margin-left: 4px;
+      }
+      .loans,
+      .offers {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .loan {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        font-size: 0.8rem;
+        padding: 6px 8px;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+      }
+      .loan .act {
+        flex: 0 0 auto;
+        font-size: 0.76rem;
+        padding: 4px 8px;
+      }
+      .offers .act {
+        text-align: left;
+        font-size: 0.8rem;
+        line-height: 1.35;
+      }
+      .offers .act small {
+        color: var(--muted);
+      }
+      .budget {
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+      }
+      .budrow {
+        display: grid;
+        grid-template-columns: 1fr 3.2em;
+        gap: 2px 8px;
+        align-items: center;
+        font-size: 0.8rem;
+      }
+      .budrow input {
+        grid-column: 1 / -1;
+        width: 100%;
+        accent-color: var(--accent);
+      }
+      .budrow output {
+        text-align: right;
+        font-weight: 600;
+      }
+      .budrow small {
+        grid-column: 1 / -1;
+        color: var(--muted);
+        font-size: 0.72rem;
+        margin-top: -2px;
+      }
+      .tool.locked {
+        opacity: 0.45;
+      }
+      .tool.locked small::before {
+        content: "🔒 ";
+      }
       /* small laptop screens: give the map more room */
       @media (min-width: 1001px) and (max-width: 1440px) {
         .layout {
@@ -1229,6 +1321,7 @@
       <header class="top">
         <div class="brand">
           <h1>নগর পরিকল্পক</h1>
+          <span class="rank" id="rank" title="শহরের মর্যাদা: জনসংখ্যা বাড়লে বাড়ে">গ্রাম</span>
         </div>
         <div class="clock">
           <div class="seg speed" id="speed" aria-label="গতি">
@@ -1583,6 +1676,11 @@
             <ul class="advice" id="advice"></ul>
           </section>
           <section class="card">
+            <h2>অগ্রগতি <small id="mileName">গ্রাম</small></h2>
+            <div class="mbar"><i id="mileBar"></i></div>
+            <p class="cnote" id="mileNote"></p>
+          </section>
+          <section class="card">
             <h2>অর্থনীতি</h2>
             <div class="taxrow">
               <span class="lbl">কর হার</span>
@@ -1601,8 +1699,26 @@
               <span>সম্পদ বিক্রি</span><span id="lRes">—</span>
               <span>পরিবহন আয়</span><span id="lRail">—</span>
               <span>খরচ (রক্ষণাবেক্ষণ + প্রশাসন)</span><span id="lUp">৳০</span>
+              <span>ঋণের কিস্তি</span><span id="lLoan">—</span>
             </div>
           </section>
+          <details class="card" id="loanCard">
+            <summary>🏦 ব্যাংক ঋণ <small id="loanSum"></small></summary>
+            <div class="loans" id="loans"></div>
+            <div class="offers" id="offers"></div>
+            <p class="cnote">
+              একসাথে সর্বোচ্চ ২টি ঋণ। কিস্তি প্রতি মাসে তহবিল থেকে কাটা হয়। আগে
+              শোধ করলে বাকি সুদ আর লাগে না।
+            </p>
+          </details>
+          <details class="card" id="budCard">
+            <summary>📊 সেবার বাজেট</summary>
+            <div class="budget" id="budget"></div>
+            <p class="cnote">
+              বাজেট বাড়ালে ক্ষমতা আর নাগাল বাড়ে, খরচও বাড়ে। কমালে টাকা বাঁচে,
+              কিন্তু সেবা কমে যায়।
+            </p>
+          </details>
           <section class="card">
             <h2>
               পরিসংখ্যান
@@ -1762,6 +1878,12 @@
                 লোহা, তেল আর কয়লা একসময় ফুরিয়ে যায়, বন আবার গজায়, উর্বর জমি
                 কখনো ফুরায় না। তেল আর কয়লায় দূষণ সবচেয়ে বেশি, আর খামার দূষণ
                 সহ্য করতে পারে না।
+              </li>
+              <li>
+                অগ্রগতি: জনসংখ্যা ৩০০, ১,০০০, ২,৫০০, ৪,০০০, ১০,০০০ আর ২৫,০০০
+                হলে শহরের মর্যাদা বাড়ে, পুরস্কারের টাকা আসে আর নতুন ভবন খোলে
+                (তালাবন্ধ টুলে 🔒 থাকে)। টাকার টান পড়লে "ব্যাংক ঋণ" নাও, আর
+                "সেবার বাজেট"-এ প্রতিটা সেবার খরচ ৫০% থেকে ১৫০% পর্যন্ত বদলাও।
               </li>
               <li>
                 "তথ্য দেখো" টুল (I) দিয়ে, বা "মানচিত্র সরাও" টুলে এক ক্লিকে, যেকোনো
@@ -2196,6 +2318,7 @@
             range: 18,
             cap: 3000,
             name: "স্কুল",
+            bud: "edu",
             of: "স্কুলের",
             at: "স্কুলে",
           },
@@ -2205,6 +2328,7 @@
             range: 22,
             cap: 4000,
             name: "হাসপাতাল",
+            bud: "edu",
             of: "হাসপাতালের",
             at: "হাসপাতালে",
           },
@@ -2214,6 +2338,7 @@
             range: 20,
             cap: 0,
             name: "থানা",
+            bud: "safety",
             of: "থানার",
           },
           {
@@ -2222,10 +2347,13 @@
             range: 20,
             cap: 0,
             name: "দমকল",
+            bud: "safety",
             of: "দমকলের",
           },
         ];
         const svcOf = (t) => SVC.find((v) => v.t === t);
+        const svcCap = (v) => Math.round(v.cap * bud(v.bud)),
+          svcRange = (v) => Math.round(v.range * (0.6 + 0.4 * bud(v.bud)));
         let owned = new Uint8Array(PW * PW);
         // res: resource id per tile (regenerated from noise, never saved); resAmt: what is left (saved); resStage: drawn state
         let res = new Uint8Array(N),
@@ -2248,6 +2376,9 @@
           apRot: 0, // which way the airport tool faces (T turns it)
           unlimited: true, // ore, oil and coal never run out (can be switched off under "খেলার নিয়ম")
           day: 0, // 0..29 within the month; the city's books and growth are settled when a month ends
+          mile: 0, // the highest milestone reached (index into MILES)
+          loans: [], // { amt, months, left, pay }
+          budget: { power: 100, water: 100, trash: 100, edu: 100, safety: 100 }, // % of normal for each service
         };
         // real seconds per game day at each speed (index = st.speed): 1x = 5 s a day, 30 days a month
         const DAY_MS = [0, 5000, 2500, 1250, 500];
@@ -2281,6 +2412,53 @@
           incOff: 0,
         };
         let ledger = { inc: 0, up: 0, res: 0, rail: 0 };
+        const netMonthly = () =>
+          ledger.inc + ledger.res + ledger.rail - ledger.up - (ledger.loan || 0);
+        /* milestones: the town's rank rises with its population; each step pays a reward and unlocks buildings */
+        const MILES = [
+          { pop: 0, name: "গ্রাম", reward: 0, unlock: [] },
+          { pop: 300, name: "ছোট শহর", reward: 3000, unlock: ["school", "police", "firestn", "ferry"] },
+          { pop: 1000, name: "শহর", reward: 6000, unlock: ["hospital", "treat", "pstation", "fstation"] },
+          { pop: 2500, name: "বড় শহর", reward: 10000, unlock: ["incin", "port"] },
+          { pop: 4000, name: "জেলা শহর", reward: 20000, unlock: ["airport"] },
+          { pop: 10000, name: "মহানগর", reward: 40000, unlock: [] },
+          { pop: 25000, name: "মেগাসিটি", reward: 80000, unlock: [] },
+        ];
+        const TOOL_NAME = {
+          school: "স্কুল",
+          police: "থানা",
+          firestn: "দমকল",
+          ferry: "লঞ্চঘাট",
+          hospital: "হাসপাতাল",
+          treat: "শোধনাগার",
+          pstation: "যাত্রী স্টেশন",
+          fstation: "মালবাহী স্টেশন",
+          incin: "ময়লার চুল্লি",
+          port: "নদীবন্দর",
+          airport: "বিমানবন্দর",
+        };
+        const LOCK = {};
+        MILES.forEach((m, k) => m.unlock.forEach((t) => (LOCK[t] = k)));
+        const locked = (tool) => (LOCK[tool] || 0) > st.mile;
+        const mileBy = (pop) => MILES.reduce((k, m, j) => (pop >= m.pop ? j : k), 0);
+        // bank loans on offer: the amount, how many months to pay it back, and the interest over the whole loan
+        const LOAN_OFFERS = [
+          { amt: 10000, months: 12, rate: 0.06 },
+          { amt: 30000, months: 24, rate: 0.12 },
+          { amt: 60000, months: 48, rate: 0.2 },
+        ];
+        const LOAN_MAX = 2;
+        // service budgets: which buildings each one pays for; 50%..150% scales their upkeep and their capacity or reach
+        const BUDGETS = [
+          { k: "power", name: "বিদ্যুৎ", t: [T.POWER], what: "বিদ্যুৎকেন্দ্রের ক্ষমতা" },
+          { k: "water", name: "পানি ও পয়ঃ", t: [T.PUMP, T.OUTLET, T.TREAT], what: "পাম্প আর পয়ঃনিষ্কাশনের ক্ষমতা" },
+          { k: "trash", name: "ময়লা", t: [T.DUMP, T.INCIN], what: "ময়লা তোলা আর গাড়ির দূরত্ব" },
+          { k: "edu", name: "শিক্ষা ও স্বাস্থ্য", t: [T.SCHOOL, T.HOSP], what: "আসন আর নাগাল" },
+          { k: "safety", name: "পুলিশ ও দমকল", t: [T.POLICE, T.FIRE], what: "নাগাল আর আগুন নেভানোর গতি" },
+        ];
+        const BUD_OF = {};
+        BUDGETS.forEach((b) => b.t.forEach((t) => (BUD_OF[t] = b.k)));
+        const bud = (k) => st.budget[k] / 100;
         // one row per month for the statistics chart: { m, pop, funds, net, happy } (saved with the city)
         let hist = [];
         const HIST_MAX = 240;
@@ -2289,7 +2467,7 @@
             m: st.month,
             pop: S.pop,
             funds: Math.round(st.funds),
-            net: ledger.inc + ledger.res + ledger.rail - ledger.up,
+            net: netMonthly(),
             happy: S.people ? Math.round(S.happy * 100) : null,
           });
           if (hist.length > HIST_MAX) hist.shift();
@@ -2634,7 +2812,12 @@
           st.day = 0;
           st.tax = 9;
           hist = [];
+          st.loans = [];
+          st.budget = { power: 100, water: 100, trash: 100, edu: 100, safety: 100 };
           refreshAll();
+          st.mile = mileBy(S.pop);
+          checkMiles(false);
+          drawLoans();
           record();
           fitCam(true);
         }
@@ -2647,7 +2830,12 @@
           st.day = 0;
           st.tax = 9;
           hist = [];
+          st.loans = [];
+          st.budget = { power: 100, water: 100, trash: 100, edu: 100, safety: 100 };
+          st.mile = 0;
           refreshAll();
+          checkMiles(false);
+          drawLoans();
           record();
           fitCam(true);
         }
@@ -2793,7 +2981,7 @@
             if (type[i] === T.POWER) {
               q.push(i);
               seen[i] = 1;
-              cap += PLANT_CAP;
+              cap += Math.round(PLANT_CAP * bud("power"));
               powered[i] = 1;
             }
           for (let h = 0; h < q.length; h++) {
@@ -2954,7 +3142,7 @@
         const pumpQual = (i) => Math.max(poll[i], colPoll[i % W]);
         const pumpOut = (i) =>
           powered[i]
-            ? Math.round(PUMP_CAP * (1 - Math.min(0.6, pumpQual(i))))
+            ? Math.round(PUMP_CAP * bud("water") * (1 - Math.min(0.6, pumpQual(i))))
             : 0; // dirty river = less usable water
         function computeWater() {
           const r = computeNet((t) => t === T.PUMP, pumpOut, watered);
@@ -2973,7 +3161,10 @@
           const r = computeNet(
             (t) => t === T.OUTLET || t === T.TREAT,
             (i) =>
-              type[i] === T.OUTLET ? OUTLET_CAP : powered[i] ? TREAT_CAP : 0,
+              Math.round(
+                (type[i] === T.OUTLET ? OUTLET_CAP : powered[i] ? TREAT_CAP : 0) *
+                  bud("water"),
+              ),
             sewered,
           );
           Object.assign(S, {
@@ -3008,10 +3199,10 @@
             const rate =
               t === T.DUMP
                 ? fill[i] < DUMP_STORE
-                  ? DUMP_RATE
+                  ? DUMP_RATE * bud("trash")
                   : 0
                 : powered[i]
-                  ? INCIN_RATE
+                  ? INCIN_RATE * bud("trash")
                   : 0;
             const list = [];
             if (rate) {
@@ -3038,7 +3229,7 @@
                   list.push(j);
                   covered[j] = 1;
                 }
-                if (d < TRUCK_RANGE)
+                if (d < TRUCK_RANGE * (0.5 + 0.5 * bud("trash")))
                   for (const j of nb(r))
                     if (isRd(type[j]) && !dist.has(j)) {
                       dist.set(j, d + 1);
@@ -3108,8 +3299,10 @@
               noRoad++;
               continue;
             }
-            let left = v.cap || Infinity;
-            v.seats += v.cap;
+            const cap = svcCap(v),
+              range = svcRange(v);
+            let left = v.cap ? cap : Infinity;
+            v.seats += cap;
             for (let h = 0; h < q.length; h++) {
               const r = q[h],
                 d = dist.get(r),
@@ -3130,7 +3323,7 @@
                 }
                 v.cov[j] = 1;
               }
-              if (d < v.range)
+              if (d < range)
                 for (const j of nb(r))
                   if (isRd(type[j]) && !dist.has(j)) {
                     dist.set(j, d + 1);
@@ -3138,8 +3331,8 @@
                   }
             }
             if (v.cap) {
-              load.set(i, v.cap - left);
-              v.used += v.cap - left;
+              load.set(i, cap - left);
+              v.used += cap - left;
             }
           }
           // happiness of every home (0..1), and what the unhappy ones complain about most
@@ -3280,7 +3473,7 @@
           }
           for (const i of spread) {
             if (burn[i]) continue;
-            burn[i] = fireC[i] ? 3 : 7;
+            burn[i] = fireC[i] ? (bud("safety") >= 1.3 ? 2 : bud("safety") < 0.8 ? 4 : 3) : 7;
             started++;
             sfx("siren", 12);
             if (!fireC[i]) startedFree++;
@@ -3324,6 +3517,8 @@
           advise();
         }
         function computeStats() {
+          const budCost = { power: 0, water: 0, trash: 0, edu: 0, safety: 0 };
+          S.budCost = budCost;
           let pop = 0,
             cj = 0,
             ij = 0,
@@ -3360,7 +3555,10 @@
               }
             } else if (isRd(t)) roads++;
             n[t] = (n[t] || 0) + 1;
-            up += UPKEEP[t] || 0;
+            const bk = BUD_OF[t],
+              u = (UPKEEP[t] || 0) * (bk ? bud(bk) : 1);
+            up += u;
+            if (bk) budCost[bk] += u;
           }
           Object.assign(S, {
             pop,
@@ -3413,6 +3611,7 @@
           // running the city (offices, staff) costs more as it grows; schools, hospitals and the rest pay their own way
           ledger.admin = Math.round(pop * 0.05);
           ledger.up = Math.round(roads * 0.4 + up + ledger.admin);
+          ledger.loan = st.loans.reduce((a, l) => a + l.pay, 0);
         }
         /* railway: stations count only if their track reaches the edge of the map (the national line);
            passengers ride from every built lot within 10 tiles of a station, and factories within
@@ -3739,9 +3938,11 @@
             else if (sc < -0.25 && lvl[i] > 0 && Math.random() < 0.08) lvl[i]--;
           }
           recompute();
-          st.funds += ledger.inc + ledger.res + ledger.rail - ledger.up;
+          st.funds += netMonthly();
+          payLoans();
           record();
           cityEvents(goneNow);
+          checkMiles(true);
           for (let i = 0; i < N; i++) {
             if (lvl[i] !== before[i]) markTile(i, !lvl[i] !== !before[i]);
             else if (
@@ -3756,6 +3957,65 @@
           save();
         }
 
+        /* ---------- milestones and loans ---------- */
+        function checkMiles(reward) {
+          while (st.mile + 1 < MILES.length && S.pop >= MILES[st.mile + 1].pop) {
+            const m = MILES[++st.mile];
+            if (!reward) continue;
+            st.funds += m.reward;
+            sfx("fanfare", 2);
+            notify(
+              `🎉 অভিনন্দন! শহরের মর্যাদা এখন "${m.name}"। পুরস্কার ${taka(m.reward)}${m.unlock.length ? ` · নতুন খুলেছে: ${m.unlock.map((t) => TOOL_NAME[t]).join(", ")}` : ""}`,
+              "ok",
+              true,
+            );
+          }
+          drawLocks();
+        }
+        function payLoans() {
+          for (const l of st.loans) l.left--;
+          const done = st.loans.filter((l) => l.left <= 0);
+          if (done.length) {
+            st.loans = st.loans.filter((l) => l.left > 0);
+            notify(`${taka(done[0].amt)}-এর ঋণ পুরো শোধ হয়ে গেছে।`, "ok");
+          }
+          ledger.loan = st.loans.reduce((a, l) => a + l.pay, 0);
+          drawLoans();
+        }
+        function takeLoan(o) {
+          if (st.loans.length >= LOAN_MAX) return flash("একসাথে ২টির বেশি ঋণ নেওয়া যায় না");
+          st.loans.push({
+            amt: o.amt,
+            months: o.months,
+            left: o.months,
+            pay: Math.round((o.amt * (1 + o.rate)) / o.months),
+          });
+          st.funds += o.amt;
+          sfx("coin");
+          flash(`${taka(o.amt)} ঋণ নেওয়া হলো`);
+          ledger.loan = st.loans.reduce((a, l) => a + l.pay, 0);
+          drawLoans();
+          advise();
+          updateUI();
+          saveSoon();
+        }
+        // paying off early costs only the part of the amount not yet repaid; the rest of the interest is waived
+        const loanLeft = (l) => Math.round((l.amt * l.left) / l.months);
+        function repayLoan(k) {
+          const l = st.loans[k];
+          if (!l) return; // the loan ended while the button was waiting for a second click
+          const c = loanLeft(l);
+          if (st.funds < c) return flash("শোধ করার মতো তহবিল নেই");
+          st.funds -= c;
+          st.loans.splice(k, 1);
+          sfx("coin");
+          flash(`ঋণ শোধ হলো (${taka(c)})`);
+          ledger.loan = st.loans.reduce((a, l2) => a + l2.pay, 0);
+          drawLoans();
+          advise();
+          updateUI();
+          saveSoon();
+        }
         /* ---------- advisor ---------- */
         function advise() {
           const out = [],
@@ -3945,7 +4205,7 @@
               "মালবাহী স্টেশনের ৩০ ঘরের মধ্যে কোনো শিল্প নেই।",
             ]);
           if (
-            ledger.inc + ledger.res + ledger.rail - ledger.up < 0 &&
+            netMonthly() < 0 &&
             st.funds >= 0
           )
             out.push(["hint", "মাসিক হিসাব ঘাটতিতে চলছে।"]);
@@ -4012,6 +4272,11 @@
             out.push([
               "hint",
               `${bn(S.svcNoRoad)}টি সেবা ভবনের পাশে রাস্তা নেই, তাই কোথাও সেবা দিতে পারছে না।`,
+            ]);
+          if (st.funds < 3000 && netMonthly() < 0 && st.loans.length < LOAN_MAX)
+            out.push([
+              "hint",
+              'টাকার টান? ডানের "ব্যাংক ঋণ" থেকে ঋণ নিতে পারো, বা "সেবার বাজেট" একটু কমাও।',
             ]);
           if (!out.length) out.push(["ok", "শহর ঠিকঠাক চলছে।"]);
           out.sort(
@@ -4132,11 +4397,11 @@
           return why;
         }
         // short pop-up messages over the map for things that just happened
-        function notify(msg, kind) {
+        function notify(msg, kind, quiet) {
           const box = $("toasts"),
             el = document.createElement("div");
           el.className = "toast" + (kind === "ok" ? " ok" : "");
-          sfx(kind === "ok" ? "chime" : "alert", 1.5);
+          if (!quiet) sfx(kind === "ok" ? "chime" : "alert", 1.5);
           el.textContent = msg;
           box.appendChild(el);
           while (box.children.length > 4) box.firstChild.remove();
@@ -4234,7 +4499,7 @@
             e.textContent = S.people ? bn(Math.round(v * 100)) + "%" : "—";
             e.style.color = S.people && v < 0.7 ? "var(--warn)" : "";
           }
-          const net = ledger.inc + ledger.res + ledger.rail - ledger.up,
+          const net = netMonthly(),
             n = $("sNet");
           n.textContent = (net >= 0 ? "+" : "") + taka(net);
           n.className = net < 0 ? "neg" : "pos";
@@ -4277,11 +4542,108 @@
           const k = nOwned();
           drawInfo();
           drawHist();
+          drawBudget();
+          drawLocks();
+          const ll = $("lLoan");
+          ll.textContent = ledger.loan ? "−" + taka(ledger.loan) : "—";
           $("plots").innerHTML =
             k >= 9
               ? `<b>৯ / ৯</b> এলাকা। পুরো মানচিত্র তোমার!`
               : `<b>${bn(k)} / ৯</b> এলাকা কেনা হয়েছে।<br>পরের এলাকার জন্য জনসংখ্যা লাগবে <b>${fmt(PLOT_POP[k])}</b> (এখন ${fmt(S.pop)}), দাম <b>${taka(PLOT_PRICE[k])}</b>।`;
         }
+        /* ---- milestones, loans and budgets in the side panel ---- */
+        function drawLocks() {
+          document.querySelectorAll(".tool").forEach((b) => {
+            const t = b.dataset.tool,
+              k = LOCK[t] || 0,
+              lk = locked(t);
+            b.classList.toggle("locked", lk);
+            b.title = lk ? `জনসংখ্যা ${fmt(MILES[k].pop)} হলে খুলবে ("${MILES[k].name}")` : "";
+          });
+          const m = MILES[st.mile],
+            nx = MILES[st.mile + 1];
+          $("rank").textContent = m.name;
+          $("mileName").textContent = m.name;
+          if (!nx) {
+            $("mileBar").style.width = "100%";
+            $("mileNote").textContent = "সর্বোচ্চ ধাপে পৌঁছে গেছ! দারুণ শহর।";
+            return;
+          }
+          const f = clamp((S.pop - m.pop) / (nx.pop - m.pop), 0, 1);
+          $("mileBar").style.width = (f * 100).toFixed(1) + "%";
+          $("mileNote").textContent =
+            `পরের ধাপ "${nx.name}": জনসংখ্যা ${fmt(nx.pop)} (এখন ${fmt(S.pop)}) · পুরস্কার ${taka(nx.reward)}` +
+            (nx.unlock.length ? ` · খুলবে: ${nx.unlock.map((t) => TOOL_NAME[t]).join(", ")}` : "");
+        }
+        function drawLoans() {
+          const box = $("loans"),
+            offers = $("offers");
+          box.innerHTML = "";
+          offers.innerHTML = "";
+          st.loans.forEach((l, k) => {
+            const row = document.createElement("div"),
+              meta = document.createElement("span"),
+              b = document.createElement("button");
+            row.className = "loan";
+            meta.innerHTML = `<b>${taka(l.amt)}</b> · মাসে ${taka(l.pay)}<br>বাকি ${bn(l.left)} মাস`;
+            b.className = "act";
+            const label = `শোধ ${taka(loanLeft(l))}`;
+            b.textContent = label;
+            b.addEventListener("click", () => confirmClick(b, label, () => repayLoan(k)));
+            row.append(meta, b);
+            box.appendChild(row);
+          });
+          for (const o of LOAN_OFFERS) {
+            const b = document.createElement("button"),
+              pay = Math.round((o.amt * (1 + o.rate)) / o.months),
+              label = `${taka(o.amt)} ঋণ নাও`;
+            b.className = "act";
+            b.disabled = st.loans.length >= LOAN_MAX;
+            b.innerHTML = `<b>${label}</b><br><small>${bn(o.months)} মাসে শোধ · মাসে ${taka(pay)} · মোট সুদ ${bn(Math.round(o.rate * 100))}%</small>`;
+            b.addEventListener("click", () => {
+              if (b.classList.contains("armed")) {
+                b.classList.remove("armed");
+                takeLoan(o);
+                return;
+              }
+              b.classList.add("armed");
+              b.innerHTML = `<b>নিশ্চিত? আবার চাপো</b><br><small>${taka(o.amt)} পাবে, ${bn(o.months)} মাস ধরে মাসে ${taka(pay)} কাটা হবে</small>`;
+              setTimeout(() => drawLoans(), 3000);
+            });
+            offers.appendChild(b);
+          }
+          $("loanSum").textContent = st.loans.length
+            ? `${bn(st.loans.length)}টি চলছে`
+            : "";
+        }
+        function buildBudget() {
+          const box = $("budget");
+          box.innerHTML = "";
+          for (const b of BUDGETS) {
+            const row = document.createElement("label");
+            row.className = "budrow";
+            row.innerHTML = `<span>${b.name}</span><output id="bo-${b.k}"></output><input type="range" min="50" max="150" step="10" id="bi-${b.k}" aria-label="${b.name} বাজেট"><small id="bc-${b.k}"></small>`;
+            box.appendChild(row);
+            row.querySelector("input").addEventListener("input", (e) => {
+              st.budget[b.k] = +e.target.value;
+              recompute();
+              markersDirty = overlayDirty = true;
+              updateUI();
+              saveSoon();
+            });
+          }
+        }
+        function drawBudget() {
+          for (const b of BUDGETS) {
+            const v = st.budget[b.k],
+              inp = $("bi-" + b.k);
+            if (+inp.value !== v) inp.value = v;
+            $("bo-" + b.k).textContent = bn(v) + "%";
+            $("bc-" + b.k).textContent =
+              `মাসে ${taka(S.budCost ? S.budCost[b.k] : 0)} · ${b.what} ${v === 100 ? "স্বাভাবিক" : v > 100 ? "বেশি" : "কম"}`;
+          }
+        }
+        buildBudget();
         /* ---- statistics chart: one measure at a time, a 2px line over a light wash, with a crosshair ---- */
         const HK = {
           pop: { name: "জনসংখ্যা", f: (v) => fmt(v) + " জন" },
@@ -4525,6 +4887,12 @@
             b.addEventListener("click", () => setTool(b.dataset.tool)),
           );
         function setTool(t) {
+          if (locked(t)) {
+            const k = LOCK[t];
+            flash(`🔒 ${TOOL_NAME[t]} খুলবে জনসংখ্যা ${fmt(MILES[k].pop)} হলে ("${MILES[k].name}")`);
+            sfx("deny", 0.4);
+            return;
+          }
           st.tool = t;
           $("apRotate").hidden = t !== "airport";
           if (svcOf(TOOL_T[t]))
@@ -4747,6 +5115,7 @@
           const t = type[i];
           if (tool === "pan" || tool === "buy" || tool === "airport" || tool === "info")
             return -1;
+          if (locked(tool)) return -1;
           if (!owned[plotOf(i)]) return -1;
           if (tool === "bulldoze")
             return t !== T.GROUND && t !== T.WATER ? COST.bulldoze : -1;
@@ -4989,6 +5358,9 @@
             res: enc(new Uint8Array(resAmt.buffer)),
             burn: enc(burn),
             hist: hist.map((h) => [h.m, h.pop, h.funds, h.net, h.happy]),
+            mile: st.mile,
+            loans: st.loans.map((l) => [l.amt, l.months, l.left, l.pay]),
+            budget: { ...st.budget },
             owned: Array.from(owned),
             funds: st.funds,
             month: st.month,
@@ -5104,9 +5476,32 @@
                 net,
                 happy: Number.isFinite(hp) ? hp : null,
               }));
-            if (st.unlimited) refillMines();
-            drawMineRule();
+            st.loans = (Array.isArray(d.loans) ? d.loans : [])
+              .filter(
+                (a) =>
+                  Array.isArray(a) &&
+                  a.length === 4 &&
+                  a.every(Number.isFinite) &&
+                  a[1] > 0 &&
+                  a[2] > 0,
+              )
+              .slice(0, LOAN_MAX)
+              .map(([amt, months, left, pay]) => ({ amt, months, left, pay }));
+            st.budget = { power: 100, water: 100, trash: 100, edu: 100, safety: 100 };
+            if (d.budget && typeof d.budget === "object")
+              for (const k in st.budget)
+                if (Number.isFinite(d.budget[k]))
+                  st.budget[k] = clamp(Math.round(d.budget[k] / 10) * 10, 50, 150);
+            st.mile = 0;
             refreshAll();
+            // a save from before milestones gets the rank its population has earned (without the rewards)
+            st.mile = Number.isInteger(d.mile)
+              ? clamp(d.mile, 0, MILES.length - 1)
+              : mileBy(S.pop);
+            checkMiles(false);
+            if (locked(st.tool)) setTool("road");
+            drawLoans();
+            updateUI();
             if (!hist.length) record();
             fitCam(true);
             return true;
@@ -9932,10 +10327,10 @@
             );
           else if (t === T.TREAT)
             parts.push(
-              powered[i] ? `ক্ষমতা ${fmt(TREAT_CAP)}` : "বিদ্যুৎ নেই, বন্ধ",
+              powered[i] ? `ক্ষমতা ${fmt(TREAT_CAP * bud("water"))}` : "বিদ্যুৎ নেই, বন্ধ",
             );
           else if (t === T.OUTLET)
-            parts.push(`ক্ষমতা ${fmt(OUTLET_CAP)}, নদী দূষিত করে`);
+            parts.push(`ক্ষমতা ${fmt(OUTLET_CAP * bud("water"))}, নদী দূষিত করে`);
           else if (t === T.DUMP)
             parts.push(
               `${bn(Math.round((fill[i] / DUMP_STORE) * 100))}% ভরেছে`,
@@ -9948,13 +10343,13 @@
                 : !nb(i).some((j) => isRd(type[j]))
                   ? "পাশে রাস্তা নেই, কাজ করছে না"
                   : v.cap
-                    ? `রাস্তা ধরে ${bn(v.range)} ঘর পর্যন্ত যায় · আসন ${fmt(S.svcLoad.get(i) || 0)} / ${fmt(v.cap)}`
-                    : `রাস্তা ধরে ${bn(v.range)} ঘর পর্যন্ত সব প্লট পাহারা দেয়`,
+                    ? `রাস্তা ধরে ${bn(svcRange(v))} ঘর পর্যন্ত যায় · আসন ${fmt(S.svcLoad.get(i) || 0)} / ${fmt(svcCap(v))}`
+                    : `রাস্তা ধরে ${bn(svcRange(v))} ঘর পর্যন্ত সব প্লট পাহারা দেয়`,
             );
           } else if (t === T.INCIN)
             parts.push(
               powered[i]
-                ? `মাসে ${fmt(INCIN_RATE)} পোড়ায়`
+                ? `মাসে ${fmt(INCIN_RATE * bud("trash"))} পোড়ায়`
                 : "বিদ্যুৎ নেই, বন্ধ",
             );
           if (isRl(t)) {
