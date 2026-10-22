@@ -656,6 +656,381 @@
           font-size: 1.1rem;
         }
       }
+
+      /* ===== skin: top bar, cards, map overlays ===== */
+      :root {
+        --shadow: 0 1px 2px rgba(0, 0, 0, 0.05), 0 6px 18px rgba(0, 0, 0, 0.06);
+        --glass: color-mix(in srgb, var(--panel) 88%, transparent);
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme="light"]) {
+          --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 22px rgba(0, 0, 0, 0.35);
+        }
+      }
+      :root[data-theme="dark"] {
+        --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 22px rgba(0, 0, 0, 0.35);
+      }
+      body {
+        padding-block: 10px 20px;
+      }
+      .wrap {
+        max-width: 1720px;
+        gap: 10px;
+      }
+      button {
+        transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+      }
+      /* top bar */
+      .top {
+        align-items: center;
+        gap: 10px 20px;
+        padding: 8px 14px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: var(--panel);
+        box-shadow: var(--shadow);
+      }
+      .brand h1 {
+        font-size: 1.55rem;
+        white-space: nowrap;
+      }
+      .clock {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .clock .date {
+        margin: 0;
+        font-weight: 600;
+        font-size: 0.98rem;
+        font-variant-numeric: tabular-nums;
+        min-width: 10.5em;
+      }
+      .seg.speed {
+        border-radius: 10px;
+      }
+      .seg.speed button {
+        min-width: 42px;
+        padding: 6px 8px;
+        font-size: 0.92rem;
+      }
+      .stats {
+        margin-left: auto;
+        gap: 8px;
+        align-items: stretch;
+      }
+      .stat {
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 3px 11px 4px;
+        justify-content: center;
+      }
+      .stat span {
+        font-size: 0.7rem;
+      }
+      .stat b {
+        font-size: 1.08rem;
+      }
+      .stat.money b {
+        font-size: 1.15rem;
+      }
+      .rci {
+        border: 1px solid var(--line);
+        border-left: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--paper);
+        height: auto;
+        padding: 4px 10px 16px;
+      }
+      .rci .bar {
+        height: 32px;
+      }
+      /* three columns: tools | big map | panel */
+      .layout {
+        grid-template-columns: 190px minmax(0, 1fr) 300px;
+        gap: 12px;
+      }
+      .tools {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 10px 8px;
+        gap: 2px;
+        box-shadow: var(--shadow);
+      }
+      .tools h2 {
+        margin: 10px 6px 4px !important;
+        font-size: 0.72rem;
+        text-transform: none;
+      }
+      .tools h2:first-child {
+        margin-top: 2px !important;
+      }
+      .tool {
+        padding: 6px 8px;
+        border-radius: 9px;
+        font-size: 0.86rem;
+        background: transparent;
+        border-color: transparent;
+      }
+      .tool:hover {
+        background: color-mix(in srgb, var(--ink) 6%, transparent);
+        border-color: var(--line);
+      }
+      .tool[aria-pressed="true"] {
+        background: color-mix(in srgb, var(--accent) 16%, transparent);
+        border-color: var(--accent);
+        box-shadow: inset 3px 0 0 var(--accent);
+      }
+      .sw {
+        border-radius: 5px;
+      }
+      /* the map and what floats on it */
+      .board {
+        border-radius: 14px;
+        box-shadow: var(--shadow);
+      }
+      .layers {
+        position: absolute;
+        left: 10px;
+        top: 10px;
+        right: 190px;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+        pointer-events: none;
+      }
+      .layers > * {
+        pointer-events: auto;
+      }
+      #overlay.chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        background: none;
+        border: 0;
+        overflow: visible;
+      }
+      #overlay.chips button {
+        flex: 0 0 auto;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 4px 11px;
+        font-size: 0.78rem;
+        background: var(--glass);
+        backdrop-filter: blur(6px);
+      }
+      #overlay.chips button:hover {
+        border-color: var(--muted);
+      }
+      #overlay.chips button[aria-pressed="true"] {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: var(--paper);
+      }
+      .layers .legend {
+        background: var(--glass);
+        backdrop-filter: blur(6px);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 5px 9px;
+      }
+      .topright {
+        position: absolute;
+        right: 10px;
+        top: 10px;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 6px;
+      }
+      .topright .act,
+      .topright .aprot {
+        position: static;
+        width: auto;
+        margin: 0;
+        border-radius: 10px;
+        background: var(--glass);
+        backdrop-filter: blur(6px);
+        font-size: 0.84rem;
+        padding: 6px 12px;
+      }
+      .topright .act:disabled {
+        opacity: 0.55;
+      }
+      .ctrl {
+        grid-template-columns: 36px 36px;
+      }
+      .ctrl button {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        background: var(--glass);
+        backdrop-filter: blur(6px);
+      }
+      .ctrl button:hover {
+        border-color: var(--muted);
+      }
+      .toasts {
+        top: auto;
+        bottom: 10px;
+        left: 10px;
+      }
+      .status {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 6px 12px;
+      }
+      .why {
+        padding: 0 4px;
+      }
+      /* right-hand panel: cards */
+      .side {
+        gap: 10px;
+      }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 11px 13px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        box-shadow: var(--shadow);
+      }
+      .card h2 {
+        margin: 0;
+        font-size: 0.8rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+      }
+      .card h2 small {
+        font-weight: 400;
+        color: var(--muted);
+        font-size: 0.72rem;
+      }
+      details.card > summary {
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 0.86rem;
+        color: var(--ink);
+      }
+      details.card[open] > summary {
+        margin-bottom: 2px;
+      }
+      .setrow {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+      .lbl {
+        font-size: 0.74rem;
+        color: var(--muted);
+        font-weight: 600;
+      }
+      .taxrow .lbl {
+        min-width: 3.6em;
+      }
+      .act {
+        border-radius: 9px;
+      }
+      .act:hover:not(:disabled) {
+        border-color: var(--muted);
+      }
+      .act.primary {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: var(--paper);
+      }
+      .seg {
+        border-radius: 9px;
+      }
+      .advice li {
+        padding: 2px 0;
+      }
+      /* small laptop screens: give the map more room */
+      @media (min-width: 1001px) and (max-width: 1360px) {
+        .layout {
+          grid-template-columns: 158px minmax(0, 1fr) 250px;
+          gap: 10px;
+        }
+        .tool {
+          font-size: 0.8rem;
+          padding: 5px 6px;
+        }
+        .tool kbd {
+          display: none !important;
+        }
+        .brand h1 {
+          font-size: 1.3rem;
+        }
+        .stat {
+          padding: 2px 8px 3px;
+        }
+        #overlay.chips button {
+          padding: 3px 9px;
+          font-size: 0.74rem;
+        }
+        .layers {
+          right: 130px;
+        }
+      }
+      /* phones and narrow windows */
+      @media (max-width: 1000px) {
+        .layout {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .top {
+          gap: 8px 12px;
+        }
+        .clock {
+          flex-wrap: wrap;
+          gap: 6px 12px;
+        }
+        .seg.speed button {
+          min-width: 38px;
+        }
+        .stats {
+          margin-left: 0;
+          width: 100%;
+          flex-wrap: wrap;
+          gap: 6px;
+        }
+        .stat {
+          flex: 1 0 auto;
+        }
+        .rci {
+          padding-bottom: 16px;
+        }
+        .tools {
+          padding: 6px;
+          border-radius: 12px;
+        }
+        .tool {
+          background: var(--paper);
+          border-color: var(--line);
+        }
+        .layers {
+          right: 10px;
+          top: 54px;
+        }
+        #overlay.chips {
+          flex-wrap: nowrap;
+          max-width: 100%;
+          overflow-x: auto;
+          scrollbar-width: none;
+        }
+        .topright {
+          flex-direction: row;
+        }
+        .clock .date {
+          min-width: 0;
+        }
+      }
     </style>
   </head>
   <body>
@@ -663,14 +1038,22 @@
       <header class="top">
         <div class="brand">
           <h1>নগর পরিকল্পক</h1>
-          <p id="date">জানুয়ারি, বছর ১</p>
+        </div>
+        <div class="clock">
+          <div class="seg speed" id="speed" aria-label="গতি">
+            <button data-s="0" title="থামাও (Space)" aria-label="থামাও">⏸</button
+            ><button data-s="1" title="স্বাভাবিক গতি: ৫ সেকেন্ডে ১ দিন" aria-label="১× গতি">▶</button
+            ><button data-s="2">২×</button><button data-s="3">৪×</button
+            ><button data-s="4">১০×</button>
+          </div>
+          <p id="date" class="date">১ জানুয়ারি, বছর ১</p>
         </div>
         <div class="stats">
-          <div class="stat"><span>তহবিল</span><b id="sFunds">৳০</b></div>
+          <div class="stat money"><span>তহবিল</span><b id="sFunds">৳০</b></div>
+          <div class="stat"><span>মাসিক নিট</span><b id="sNet">০</b></div>
           <div class="stat"><span>জনসংখ্যা</span><b id="sPop">০</b></div>
           <div class="stat"><span>কর্মসংস্থান</span><b id="sJobs">০</b></div>
-          <div class="stat"><span>মাসিক নিট</span><b id="sNet">০</b></div>
-          <div class="rci" aria-label="জোন চাহিদা">
+          <div class="rci" aria-label="জোন চাহিদা" title="জোনের চাহিদা: আবাসিক, বাণিজ্যিক, শিল্প">
             <span class="rci-l">চাহিদা</span>
             <div class="bar">
               <i id="dR" style="background: var(--res)"></i><em>আ</em>
@@ -687,9 +1070,6 @@
 
       <div class="layout">
         <nav class="tools" aria-label="নির্মাণ সরঞ্জাম">
-          <button class="act undo" id="btnUndo" disabled title="Ctrl+Z">
-            ↶ আগের অবস্থা <kbd>Ctrl+Z</kbd>
-          </button>
           <h2>রাস্তা ও জোন</h2>
           <button class="tool" data-tool="road">
             <span class="sw" style="background: var(--road)"></span>রাস্তা<small
@@ -848,21 +1228,46 @@
               id="cv"
               aria-label="শহরের ত্রিমাত্রিক মানচিত্র। টেনে টেনে রাস্তা ও জোন বসাও।"
             ></canvas>
+            <div class="layers">
+              <div class="seg chips" id="overlay" aria-label="মানচিত্রের স্তর">
+                <button data-o="none">সাধারণ</button
+                ><button data-o="power">বিদ্যুৎ</button
+                ><button data-o="water">পানি</button
+                ><button data-o="sewer">পয়ঃ</button
+                ><button data-o="trash">ময়লা</button
+                ><button data-o="poll">দূষণ</button
+                ><button data-o="lv">জমির মান</button
+                ><button data-o="res">সম্পদ</button
+                ><button data-o="rail">পরিবহন</button
+                ><button data-o="plots">এলাকা</button>
+              </div>
+            <div class="legend" id="resLegend" hidden>
+              <span><i style="background: rgb(214, 180, 40)"></i>উর্বর জমি</span
+              ><span><i style="background: rgb(34, 120, 52)"></i>বন</span>
+              <span><i style="background: rgb(196, 92, 44)"></i>লোহা</span
+              ><span><i style="background: rgb(92, 52, 140)"></i>তেল</span>
+              <span><i style="background: rgb(40, 40, 44)"></i>কয়লা</span
+              ><span
+                ><i style="background: rgb(150, 150, 150)"></i>ফুরিয়েছে</span
+              >
+            </div>
+            </div>
+            <div class="topright">
+              <button class="act undo" id="btnUndo" disabled title="শেষ কাজটা ফিরিয়ে আনো (Ctrl+Z)">
+                ↶ আগের অবস্থা
+              </button>
+              <button class="aprot" id="apRotate" hidden>⟳ বিমানবন্দর ঘোরাও (T)</button>
+            </div>
             <div class="ctrl">
-              <button id="zIn" aria-label="জুম বাড়াও">+</button>
-              <button id="zOut" aria-label="জুম কমাও">−</button>
-              <button id="rotL" aria-label="বাঁয়ে ঘোরাও">⟲</button>
-              <button id="rotR" aria-label="ডানে ঘোরাও">⟳</button>
-              <button id="tilt" class="txt" aria-label="উপর থেকে দেখো">
-                উপর
-              </button>
-              <button id="zFit" class="txt" aria-label="পুরো শহর দেখাও">
-                পুরো
-              </button>
+              <button id="zIn" aria-label="জুম বাড়াও" title="জুম বাড়াও">+</button>
+              <button id="zOut" aria-label="জুম কমাও" title="জুম কমাও">−</button>
+              <button id="rotL" aria-label="বাঁয়ে ঘোরাও" title="বাঁয়ে ঘোরাও (Q)">⟲</button>
+              <button id="rotR" aria-label="ডানে ঘোরাও" title="ডানে ঘোরাও (E)">⟳</button>
+              <button id="tilt" class="txt" aria-label="উপর থেকে দেখো" title="উপর থেকে দেখো">উপর</button>
+              <button id="zFit" class="txt" aria-label="পুরো শহর দেখাও" title="পুরো শহর দেখাও">পুরো</button>
             </div>
             <div class="glerr" id="glerr"></div>
             <div class="toasts" id="toasts" aria-live="polite"></div>
-            <button class="aprot" id="apRotate" hidden>⟳ বিমানবন্দর ঘোরাও (T)</button>
           </div>
           <div class="status">
             <span id="hover"
@@ -874,41 +1279,14 @@
         </section>
 
         <aside class="side">
-          <div class="block">
-            <h2>গতি</h2>
-            <div class="seg" id="speed">
-              <button data-s="0">থামাও</button><button data-s="1">১×</button
-              ><button data-s="2">২×</button><button data-s="3">৪×</button
-              ><button data-s="4">১০×</button>
-            </div>
-          </div>
-          <div class="block">
-            <h2>খেলার নিয়ম</h2>
-            <div class="seg" id="mineRule">
-              <button data-m="1">খনিজ অফুরন্ত</button
-              ><button data-m="0">খনিজ ফুরায়</button>
-            </div>
-            <div class="rulenote" id="mineNote"></div>
-          </div>
-          <div class="block">
-            <h2>সময় ও গ্রাফিক্স</h2>
-            <div class="seg" id="tod">
-              <button data-t="day">দিন</button
-              ><button data-t="dusk">সন্ধ্যা</button
-              ><button data-t="night">রাত</button>
-            </div>
-            <div class="seg" id="quality">
-              <button data-q="high">ছায়াসহ</button
-              ><button data-q="low">হালকা</button>
-            </div>
-            <div class="seg" id="fps">
-              <button data-f="30">৩০ fps</button
-              ><button data-f="60">৬০ fps</button>
-            </div>
-          </div>
-          <div class="block">
-            <h2>কর হার</h2>
+          <section class="card">
+            <h2>মেয়রের উপদেষ্টা</h2>
+            <ul class="advice" id="advice"></ul>
+          </section>
+          <section class="card">
+            <h2>অর্থনীতি</h2>
             <div class="taxrow">
+              <span class="lbl">কর হার</span>
               <input
                 id="tax"
                 type="range"
@@ -924,51 +1302,27 @@
               <span>সম্পদ বিক্রি</span><span id="lRes">—</span>
               <span>পরিবহন আয়</span><span id="lRail">—</span>
               <span>খরচ (রক্ষণাবেক্ষণ + প্রশাসন)</span><span id="lUp">৳০</span>
-              <span>বিদ্যুৎ</span><span id="lPow">০ / ০</span> <span>পানি</span
-              ><span id="lWat">০ / ০</span> <span>পয়ঃনিষ্কাশন</span
-              ><span id="lSew">০ / ০</span> <span>ময়লা (মাসিক)</span
-              ><span id="lTrash">০ / ০</span> <span>ভাগাড় ভরেছে</span
-              ><span id="lDump">—</span> <span>খনির মজুদ</span
-              ><span id="lMine">—</span>
             </div>
-          </div>
-          <div class="block">
-            <h2>মানচিত্রের স্তর</h2>
-            <div class="seg" id="overlay">
-              <button data-o="none">সাধারণ</button
-              ><button data-o="power">বিদ্যুৎ</button
-              ><button data-o="water">পানি</button
-              ><button data-o="sewer">পয়ঃ</button>
-              <button data-o="trash">ময়লা</button
-              ><button data-o="poll">দূষণ</button
-              ><button data-o="lv">জমির মান</button
-              ><button data-o="res">সম্পদ</button
-              ><button data-o="rail">পরিবহন</button
-              ><button data-o="plots">এলাকা</button>
+          </section>
+          <section class="card">
+            <h2>সেবার অবস্থা <small>চাহিদা / ক্ষমতা</small></h2>
+            <div class="ledger">
+              <span>বিদ্যুৎ</span><span id="lPow">০ / ০</span>
+              <span>পানি</span><span id="lWat">০ / ০</span>
+              <span>পয়ঃনিষ্কাশন</span><span id="lSew">০ / ০</span>
+              <span>ময়লা (মাসিক)</span><span id="lTrash">০ / ০</span>
+              <span>ভাগাড় ভরেছে</span><span id="lDump">—</span>
+              <span>খনির মজুদ</span><span id="lMine">—</span>
             </div>
-            <div class="legend" id="resLegend" hidden>
-              <span><i style="background: rgb(214, 180, 40)"></i>উর্বর জমি</span
-              ><span><i style="background: rgb(34, 120, 52)"></i>বন</span>
-              <span><i style="background: rgb(196, 92, 44)"></i>লোহা</span
-              ><span><i style="background: rgb(92, 52, 140)"></i>তেল</span>
-              <span><i style="background: rgb(40, 40, 44)"></i>কয়লা</span
-              ><span
-                ><i style="background: rgb(150, 150, 150)"></i>ফুরিয়েছে</span
-              >
-            </div>
-          </div>
-          <div class="block">
+          </section>
+          <section class="card">
             <h2>এলাকা</h2>
             <div class="plots" id="plots"></div>
-          </div>
-          <div class="block">
-            <h2>মেয়রের উপদেষ্টা</h2>
-            <ul class="advice" id="advice"></ul>
-          </div>
-          <div class="block">
+          </section>
+          <section class="card">
             <h2>সংরক্ষণ</h2>
             <div class="acts">
-              <button class="act" id="btnSave">এখনই সেভ করো</button>
+              <button class="act primary" id="btnSave">এখনই সেভ করো</button>
               <span class="saveinfo" id="saveInfo">নিজে থেকেও সেভ হয়</span>
             </div>
             <div class="slots" id="slots"></div>
@@ -982,15 +1336,44 @@
                 hidden
               />
             </div>
-          </div>
-          <div class="block">
             <div class="acts">
               <button class="act" id="btnSample">নমুনা শহর</button>
               <button class="act" id="btnBlank">ফাঁকা মানচিত্র</button>
             </div>
-            <details>
-              <summary>নিয়ন্ত্রণ আর সিমুলেশন</summary>
-              <ul>
+          </section>
+          <details class="card settings">
+            <summary>⚙ সেটিংস</summary>
+            <div class="setrow">
+              <span class="lbl">খেলার নিয়ম</span>
+              <div class="seg" id="mineRule">
+                <button data-m="1">খনিজ অফুরন্ত</button
+                ><button data-m="0">খনিজ ফুরায়</button>
+              </div>
+              <div class="rulenote" id="mineNote"></div>
+            </div>
+            <div class="setrow">
+              <span class="lbl">সময়</span>
+              <div class="seg" id="tod">
+                <button data-t="day">দিন</button
+                ><button data-t="dusk">সন্ধ্যা</button
+                ><button data-t="night">রাত</button>
+              </div>
+            </div>
+            <div class="setrow">
+              <span class="lbl">গ্রাফিক্স</span>
+              <div class="seg" id="quality">
+                <button data-q="high">ছায়াসহ</button
+                ><button data-q="low">হালকা</button>
+              </div>
+              <div class="seg" id="fps">
+                <button data-f="30">৩০ fps</button
+                ><button data-f="60">৬০ fps</button>
+              </div>
+            </div>
+          </details>
+          <details class="card help">
+            <summary>❓ নিয়ন্ত্রণ আর সিমুলেশন</summary>
+            <ul>
                 <li>
                   ক্যামেরা: মাঝের বাটন বা Alt চেপে টানলে ঘোরে আর হেলে। ডান-ক্লিক
                   টেনে সরে, চাকায় জুম হয়। কিবোর্ডে W A S D বা অ্যারো দিয়ে
@@ -1056,8 +1439,7 @@
                   পুরো মানচিত্রে মোট ৯টি এলাকা আছে।
                 </li>
               </ul>
-            </details>
-          </div>
+          </details>
         </aside>
       </div>
     </div>
@@ -7723,7 +8105,7 @@
           if (!w) return;
           cw = w;
           ch = Math.round(
-            clamp(Math.min(w * 0.68, innerHeight * 0.78), 340, 900),
+            clamp(innerWidth > 1000 ? innerHeight - 175 : Math.min(w * 0.85, innerHeight * 0.7), 340, 1100),
           );
           cv.style.height = ch + "px";
           renderer.setPixelRatio(
