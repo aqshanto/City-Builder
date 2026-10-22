@@ -688,6 +688,13 @@
               >৳৬,০০০</small
             >
           </button>
+          <button class="tool" data-tool="airport">
+            <span
+              class="sw"
+              style="background: repeating-linear-gradient(90deg, #34373b 0 6px, #f2f2ee 6px 8px)"
+            ></span
+            >বিমানবন্দর<small>৳৪০,০০০</small>
+          </button>
           <button class="tool" data-tool="ferry">
             <span class="sw" style="background: #e8e4da"></span>লঞ্চঘাট<small
               >৳৩,০০০</small
@@ -956,6 +963,11 @@
                   রপ্তানি হয়। রেললাইন রাস্তা পেরোলে লেভেল ক্রসিং হয়।
                 </li>
                 <li>
+                  বিমানবন্দর (জনসংখ্যা ৪,০০০ হলে): ১২×৩ ঘরের খালি জায়গা লাগে, T
+                  চেপে ঘোরানো যায়। টার্মিনালের পাশে রাস্তা আর বিদ্যুৎ লাগে।
+                  পর্যটক আর ব্যবসা আনে, তবে রানওয়ের আশেপাশে শব্দদূষণ হয়।
+                </li>
+                <li>
                   নদীর পাড়ে লঞ্চঘাট বসালে আশেপাশের মানুষ লঞ্চে চড়ে, আর নদীবন্দর
                   বসালে রাস্তা ধরে ৩০ ঘরের মধ্যের কারখানার মাল জাহাজে রপ্তানি হয়।
                   ব্রিজগুলো উঁচু, তাই জাহাজ নিচ দিয়ে যায়।
@@ -1011,6 +1023,7 @@
           FSTN: 16, // freight (cargo) station
           PORT: 17, // river cargo port
           FERRY: 18, // launch ghat (passenger ferry terminal)
+          AIRPORT: 19, // every tile of a 12x3 airport
         };
         const CAP = {
           3: [0, 20, 60, 140],
@@ -1038,6 +1051,7 @@
           fstation: 5000,
           port: 6000,
           ferry: 3000,
+          airport: 40000,
         };
         const TOOL_T = {
           road: T.ROAD,
@@ -1062,7 +1076,7 @@
           PUMP_CAP = 700,
           OUTLET_CAP = 800,
           TREAT_CAP = 1600;
-        const POWER_USE = { [T.PUMP]: 15, [T.TREAT]: 60, [T.INCIN]: 80 };
+        const POWER_USE = { [T.PUMP]: 15, [T.TREAT]: 60, [T.INCIN]: 80, [T.AIRPORT]: 4 };
         const UPKEEP = {
           [T.POWER]: 80,
           [T.PUMP]: 40,
@@ -1075,6 +1089,7 @@
           [T.FSTN]: 80,
           [T.PORT]: 100,
           [T.FERRY]: 40,
+          [T.AIRPORT]: 11, // per tile, about ৳৪০০ a month for the whole airport
         };
         const DUMP_STORE = 40000,
           DUMP_RATE = 1000,
@@ -1158,6 +1173,7 @@
           16: "মালবাহী স্টেশন",
           17: "নদীবন্দর",
           18: "লঞ্চঘাট",
+          19: "বিমানবন্দর",
         };
         const BN = "০১২৩৪৫৬৭৮৯";
         const bn = (s) => String(s).replace(/\d/g, (d) => BN[d]);
@@ -1226,6 +1242,7 @@
           tod: "day",
           quality: "high",
           fps: 30,
+          apRot: 0, // which way the airport tool faces (T turns it)
           unlimited: true, // ore, oil and coal never run out (can be switched off under "খেলার নিয়ম")
           day: 0, // 0..29 within the month; the city's books and growth are settled when a month ends
         };
@@ -1294,7 +1311,93 @@
         }
 
         /* ---------- world setup ---------- */
+        /* airports: a 12x3 block. Local u runs along the runway, v across it:
+           v 0 = runway, v 1 = apron and taxiway, v 2 = terminal, tower, hangar and car park.
+           r (0..3) turns it a quarter at a time, so the terminal can face any side. */
+        const AP_L = 12,
+          AP_W = 3,
+          AP_POP = 4000;
+        let airports = [];
+        function apTile(a, u, v) {
+          if (a.r === 1) return [a.x + v, a.y + u];
+          if (a.r === 2) return [a.x + AP_L - 1 - u, a.y + AP_W - 1 - v];
+          if (a.r === 3) return [a.x + AP_W - 1 - v, a.y + AP_L - 1 - u];
+          return [a.x + u, a.y + v];
+        }
+        // the same mapping for points rather than tiles (drawing and aircraft)
+        function apWorld(a, u, v) {
+          if (a.r === 1) return [a.x + v, a.y + u];
+          if (a.r === 2) return [a.x + AP_L - u, a.y + AP_W - v];
+          if (a.r === 3) return [a.x + AP_W - v, a.y + AP_L - u];
+          return [a.x + u, a.y + v];
+        }
+        function apTiles(a) {
+          const out = [];
+          for (let u = 0; u < AP_L; u++) for (let v = 0; v < AP_W; v++) out.push([...apTile(a, u, v), u, v]);
+          return out;
+        }
+        function apFootprint(cx, cy, r) {
+          // centred on the tile under the mouse
+          return r % 2 === 0 ? { x: cx - 6, y: cy - 1, r } : { x: cx - 1, y: cy - 6, r };
+        }
+        function airportAt(i) {
+          const x = i % W,
+            y = (i / W) | 0;
+          for (const a of airports) {
+            const w = a.r % 2 === 0 ? AP_L : AP_W,
+              h = a.r % 2 === 0 ? AP_W : AP_L;
+            if (x >= a.x && x < a.x + w && y >= a.y && y < a.y + h) return a;
+          }
+          return null;
+        }
+        function apLocal(a, x, y) {
+          for (let u = 0; u < AP_L; u++)
+            for (let v = 0; v < AP_W; v++) {
+              const [tx, ty] = apTile(a, u, v);
+              if (tx === x && ty === y) return [u, v];
+            }
+          return [0, 0];
+        }
+        // why an airport cannot go here ("" = it can)
+        function airportCheck(a) {
+          if (S.pop < AP_POP) return `বিমানবন্দরের জন্য জনসংখ্যা ${fmt(AP_POP)} লাগবে (এখন ${fmt(S.pop)})`;
+          for (const [x, y] of apTiles(a)) {
+            if (x < 0 || y < 0 || x >= W || y >= H) return "বিমানবন্দর মানচিত্রের বাইরে চলে যাচ্ছে";
+            const i = y * W + x;
+            if (!owned[plotOf(i)]) return "পুরো জায়গাটা কেনা এলাকার মধ্যে হতে হবে";
+            if (type[i] !== T.GROUND) return "১২×৩ ঘরের পুরো জায়গাটা খালি হতে হবে";
+          }
+          if (st.funds < COST.airport) return "তহবিল নেই";
+          return "";
+        }
+        function placeAirport(cx, cy) {
+          const a = apFootprint(cx, cy, st.apRot),
+            why = airportCheck(a);
+          if (why) return flash(why);
+          st.funds -= COST.airport;
+          for (const [x, y] of apTiles(a)) {
+            const i = y * W + x;
+            type[i] = T.AIRPORT;
+            lvl[i] = 0;
+            trash[i] = 0;
+            fill[i] = 0;
+            markTile(i);
+          }
+          airports.push(a);
+          changed = true;
+          commit();
+          flash("বিমানবন্দর তৈরি হলো!");
+        }
+        function removeAirport(a) {
+          for (const [x, y] of apTiles(a)) {
+            const i = y * W + x;
+            type[i] = T.GROUND;
+            markTile(i);
+          }
+          airports.splice(airports.indexOf(a), 1);
+        }
         function makeTerrain() {
+          airports = [];
           for (let y = 0; y < H; y++)
             for (let x = 0; x < W; x++) {
               const i = y * W + x;
@@ -1700,6 +1803,7 @@
             else if (t === T.DUMP)
               spread(i, 3, 0.25 + (0.25 * fill[i]) / DUMP_STORE, poll);
             else if (t === T.OUTLET) spread(i, 3, 0.2, poll);
+            else if (t === T.AIRPORT) spread(i, 3, 0.025, poll); // aircraft noise
             else if (t === T.PARK) {
               spread(i, 2, -0.12, poll);
               spread(i, 3, 0.2, lv);
@@ -2090,6 +2194,31 @@
             if ((type[i] === T.RAIL || type[i] === T.CROSS) && owned[plotOf(i)]) nudge(i, 1, -0.03);
           ledger.rail = Math.round(riders * 0.05 + freight);
           ledger.up += Math.round(track * 0.5);
+          // an airport works when its terminal side touches a road and it has power
+          let airOn = 0,
+            airOff = 0,
+            airWhy = "";
+          for (const a of airports) {
+            let road = false,
+              pow = false;
+            for (const [x, y] of apTiles(a)) {
+              const i = y * W + x;
+              if (powered[i]) pow = true;
+              for (const j of nb(i)) if (isRd(type[j])) road = true;
+            }
+            a.on = road && pow;
+            if (a.on) airOn++;
+            else {
+              airOff++;
+              airWhy = !road ? "পাশে কোনো রাস্তা নেই" : "বিদ্যুৎ নেই";
+            }
+          }
+          const flyers = airOn ? Math.round((S.pop * 0.06 + S.cj * 0.05) * (1 + 0.3 * (airOn - 1))) : 0;
+          ledger.rail += flyers;
+          if (airOn) {
+            dem.C += 0.12; // visitors and business
+            dem.R += 0.04;
+          }
           if (pOn + ferries) {
             dem.R += 0.08 * Math.min(2, pOn + ferries); // trains and launches bring newcomers and shoppers
             dem.C += 0.06 * Math.min(2, pOn + ferries);
@@ -2104,6 +2233,10 @@
             freight: Math.round(freight),
             ferries,
             ports,
+            airOn,
+            airOff,
+            airWhy,
+            flyers,
             portsNoRoad,
             portList,
           });
@@ -2382,6 +2515,9 @@
               "hint",
               `${bn(S.pstnOff + S.fstnOff)}টি স্টেশন মূল রেললাইনের সাথে যুক্ত নয়। রেললাইন দিয়ে জোড়ো।`,
             ]);
+          if (S.airOff) out.push(["crit", `বিমানবন্দর বন্ধ: ${S.airWhy}।`]);
+          else if (!airports.length && S.pop >= 8000)
+            out.push(["hint", "শহর বড় হয়েছে। বিমানবন্দর বানালে পর্যটক আর ব্যবসা আসবে (১২×৩ ঘরের খালি জায়গা লাগে)।"]);
           if (S.portsNoRoad)
             out.push(["hint", `${bn(S.portsNoRoad)}টি নদীবন্দরের পাশে রাস্তা নেই, তাই মাল আসছে না।`]);
           if (S.pop > 3000 && !n(T.PSTN))
@@ -2557,7 +2693,7 @@
           $("lInc").textContent = taka(ledger.inc);
           $("lUp").textContent = taka(ledger.up);
           $("lRail").textContent =
-            S.pstnOn + S.fstnOn + S.ports + S.ferries ? `${taka(ledger.rail)} · ${fmt(S.riders)} যাত্রী` : "—";
+            S.pstnOn + S.fstnOn + S.ports + S.ferries + S.airOn ? `${taka(ledger.rail)} · ${fmt(S.riders)} যাত্রী` : "—";
           $("lRes").textContent = S.nSpec
             ? `${taka(ledger.res)} · ${bn(S.nSpec)}টি`
             : "—";
@@ -2806,7 +2942,7 @@
         /* ---------- building ---------- */
         function canPlace(i, tool) {
           const t = type[i];
-          if (tool === "pan" || tool === "buy") return -1;
+          if (tool === "pan" || tool === "buy" || tool === "airport") return -1;
           if (!owned[plotOf(i)]) return -1;
           if (tool === "bulldoze")
             return t !== T.GROUND && t !== T.WATER ? COST.bulldoze : -1;
@@ -2850,6 +2986,15 @@
           const i = y * W + x,
             tool = st.tool,
             c = canPlace(i, tool);
+          if (tool === "bulldoze" && type[i] === T.AIRPORT && owned[plotOf(i)]) {
+            const a = airportAt(i); // the whole airport goes at once
+            if (a) {
+              removeAirport(a);
+              st.funds -= COST.bulldoze;
+              changed = true;
+              return;
+            }
+          }
           if (c < 0) {
             if (tool !== "pan" && tool !== "buy" && !owned[plotOf(i)])
               flash("এই এলাকা এখনও কেনা হয়নি");
@@ -2948,6 +3093,7 @@
             tax: st.tax,
             pop: S.pop,
             unlimited: st.unlimited,
+            airports: airports.map((a) => [a.x, a.y, a.r]),
             savedAt: Date.now(),
           };
         }
@@ -3002,6 +3148,9 @@
             st.day = Number.isInteger(d.day) && d.day >= 0 && d.day < 30 ? d.day : 0;
             st.tax = d.tax;
             st.unlimited = d.unlimited !== false;
+            airports = (Array.isArray(d.airports) ? d.airports : [])
+              .map(([x, y, r]) => ({ x, y, r }))
+              .filter((a) => apTiles(a).every(([x, y]) => x >= 0 && y >= 0 && x < W && y < H && type[y * W + x] === T.AIRPORT));
             if (st.unlimited) refillMines();
             drawMineRule();
             refreshAll();
@@ -3093,6 +3242,10 @@
           spoil: P3([0x8a7d6a, 0x7b6f60, 0x9a8b72]),
         };
         const K = {
+          apron: C3(0xb9b5ab),
+          runway: C3(0x34373b),
+          terminal: C3(0x7fa3bb),
+          hangar: C3(0xb8bcbf),
           ballast: C3(0x8a8278),
           sleeper: C3(0x5b4636),
           railSteel: C3(0xaab1b8),
@@ -4676,6 +4829,72 @@
           R(0.74, 0.94, 0.62, 0.94, 0.15, 0.27, pick(PAL.container, (h * 13) % 1));
           return 1.02;
         }
+        // each airport tile draws its own slice of the runway, apron or landside buildings
+        function drawAirportTile(x, y, i) {
+          const a = airportAt(i);
+          if (!a) return 0;
+          const [u, v] = apLocal(a, x, y);
+          const R = (u0, u1, v0, v1) => {
+            const [ax, az] = apWorld(a, u0, v0),
+              [bx, bz] = apWorld(a, u1, v1);
+            return [Math.min(ax, bx), Math.min(az, bz), Math.max(ax, bx), Math.max(az, bz)];
+          };
+          const F = (u0, u1, v0, v1, y0, y1, c) => flat(...R(u0, u1, v0, v1), y0, y1, c),
+            B = (u0, u1, v0, v1, y0, y1, c, w) => box(...R(u0, u1, v0, v1), y0, y1, c, w),
+            Lt = (u0, u1, v0, v1, y0, y1, c) => lit(...R(u0, u1, v0, v1), y0, y1, c);
+          F(u, u + 1, v, v + 1, 0, 0.02, K.apron);
+          if (v === 0) {
+            // runway: centre-line dashes, edge lines, piano-key thresholds and edge lights
+            F(u, u + 1, 0.08, 0.92, 0.02, 0.03, K.runway);
+            F(u, u + 1, 0.1, 0.12, 0.03, 0.032, K.white);
+            F(u, u + 1, 0.88, 0.9, 0.03, 0.032, K.white);
+            if (u === 0 || u === AP_L - 1) {
+              const e = u === 0 ? 0.12 : AP_L - 0.5;
+              for (let k = 0; k < 6; k++) F(e, e + 0.36, 0.18 + k * 0.11, 0.24 + k * 0.11, 0.03, 0.032, K.white);
+            } else F(u + 0.15, u + 0.65, 0.485, 0.515, 0.03, 0.032, K.white);
+            Lt(u + 0.47, u + 0.53, 0.05, 0.08, 0.03, 0.05, K.lamp);
+            Lt(u + 0.47, u + 0.53, 0.92, 0.95, 0.03, 0.05, K.lamp);
+            return 0.05;
+          }
+          if (v === 1) {
+            // apron: yellow taxi line, two stands with jet bridges reaching out from the terminal
+            F(u, u + 1, 1.485, 1.515, 0.02, 0.023, K.yellow);
+            if (u === 4 || u === 8) {
+              F(u + 0.485, u + 0.515, 1.5, 1.95, 0.02, 0.023, K.yellow);
+              B(u + 0.4, u + 0.6, 1.72, 2.05, 0.14, 0.22, K.concrete);
+              B(u + 0.47, u + 0.53, 1.74, 1.8, 0.02, 0.14, K.dark);
+            }
+            return 0.22;
+          }
+          if (u <= 1) {
+            // car park
+            F(u, u + 1, 2.05, 2.95, 0.02, 0.03, K.asphalt);
+            for (let k = 0; k < 3; k++) F(u + 0.1 + k * 0.32, u + 0.12 + k * 0.32, 2.15, 2.85, 0.03, 0.032, K.white);
+            if (hash(i) > 0.4) B(u + 0.18, u + 0.36, 2.3, 2.42, 0.03, 0.09, pick(PAL.car, hash(i + 5)));
+            return 0.1;
+          }
+          if (u <= 8) {
+            // glass terminal hall with an overhanging roof
+            B(u, u + 1, 2.08, 2.85, 0.02, 0.5, K.terminal, [3, 0.25, 0.16, i]);
+            B(u, u + 1, 2.0, 2.92, 0.5, 0.54, K.concrete);
+            if (u === 5) Lt(u + 0.2, u + 0.8, 2.86, 2.88, 0.38, 0.46, K.lamp); // name board
+            return 0.54;
+          }
+          if (u === 9) {
+            // control tower
+            const [cx, cz] = apWorld(a, 9.5, 2.5);
+            cyl(cx, cz, 0.11, 0.02, 1.5, K.concrete);
+            B(9.22, 9.78, 2.22, 2.78, 1.5, 1.72, K.terminal, [3, 0.22, 0.12, i]);
+            B(9.18, 9.82, 2.18, 2.82, 1.72, 1.76, K.dark);
+            box(cx - 0.01, cz - 0.01, cx + 0.01, cz + 0.01, 1.76, 2.0, K.dark);
+            lit(cx - 0.02, cz - 0.02, cx + 0.02, cz + 0.02, 2.0, 2.03, K.redLight);
+            return 2.03;
+          }
+          // hangar
+          B(u, u + 1, 2.1, 2.9, 0.02, 0.45, K.hangar, [1, 0.45, 0.5, i]);
+          prism(...R(u, u + 1, 2.05, 2.95), 0.45, 0.12, pick(PAL.metal, 0.3), a.r % 2 === 0);
+          return 0.57;
+        }
         function drawFerry(x, y, i) {
           const d = riverSide(x, y),
             bankX = d[1] !== 0,
@@ -4855,6 +5074,7 @@
               else if (t === T.PSTN || t === T.FSTN) top = drawStation(x, y, i);
               else if (t === T.PORT) top = drawPort(x, y, i);
               else if (t === T.FERRY) top = drawFerry(x, y, i);
+              else if (t === T.AIRPORT) top = drawAirportTile(x, y, i);
               else if (t === T.R) top = drawRes(x, y, L, i, h, h2, h3);
               else if (t === T.C) top = drawCom(x, y, L, i, h, h2, h3);
               else if (t === T.I) {
@@ -5434,6 +5654,7 @@
               else if (o === "rail") {
                 if (isRl(t)) f = railConn[i] ? good + ".8)" : bad + ".8)";
                 else if (t === T.PORT || t === T.FERRY) f = good + ".8)";
+                else if (t === T.AIRPORT) f = (airportAt(i) || {}).on ? good + ".6)" : bad + ".6)";
                 else if (pCov[i]) f = blue + ".35)";
                 else if (fCov[i] && lvl[i]) f = brown + ".55)";
                 else continue;
@@ -6088,6 +6309,134 @@
           shipGeo.attributes.aWin.needsUpdate = true;
         }
 
+        /* ---- aircraft: each working airport has up to two planes doing the full round:
+           approach from afar, land, taxi to a stand, wait, taxi back, take off and climb away ---- */
+        const MAXPB = 30,
+          MAXPT = 200,
+          LIVERY = P3([0x0b6e4f, 0x1f5fa8, 0xd2552b, 0x7a2e8a]);
+        const planeGeo = G.box.clone();
+        planeGeo.setAttribute("aWin", new THREE.InstancedBufferAttribute(new Float32Array(MAXPB * 4), 4));
+        const planeBody = new THREE.InstancedMesh(planeGeo, matBuild, MAXPB),
+          planeTop = new THREE.InstancedMesh(G.box, matPlain, MAXPT);
+        for (const m of [planeBody, planeTop]) {
+          m.frustumCulled = false;
+          m.count = 0;
+          m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+          m.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(m === planeBody ? MAXPB * 3 : MAXPT * 3), 3);
+          scene.add(m);
+        }
+        let planes = [];
+        // waypoints in airport coordinates: [u, v, altitude, speed to reach it, wait there]
+        function planePath(stand) {
+          return [
+            [-40, 0.5, 7, 0],
+            [0.8, 0.5, 0, 5],
+            [9.5, 0.5, 0, 3],
+            [10.5, 1.5, 0, 0.8],
+            [stand, 1.5, 0, 0.7, 6],
+            [1.0, 1.5, 0, 0.7],
+            [0.5, 0.5, 0, 0.5],
+            [8.5, 0.5, 0, 3.5],
+            [45, 0.5, 8, 5.5],
+          ];
+        }
+        function updatePlanes(dt) {
+          const pace = [0, 1, 1.8, 3, 4.5][st.speed];
+          for (const a of airports) {
+            if (!a.on || reduce) continue;
+            let n = 0,
+              used = 0;
+            for (const pl of planes)
+              if (pl.a === a) {
+                n++;
+                used = pl.stand;
+              }
+            if (n < 2 && Math.random() < dt * 0.05 * pace) {
+              const stand = used === 4.5 ? 8.5 : 4.5;
+              planes.push({ a, stand, pts: planePath(stand), seg: 0, t: 0, wait: 0, col: (Math.random() * LIVERY.length) | 0, seed: (Math.random() * 997) | 0, rot: 0 });
+            }
+          }
+          for (const pl of planes) {
+            if (!airports.includes(pl.a)) {
+              pl.dead = true;
+              continue;
+            }
+            if (pl.wait > 0) {
+              pl.wait -= dt * pace;
+              continue;
+            }
+            const A = pl.pts[pl.seg],
+              B = pl.pts[pl.seg + 1],
+              len = Math.hypot(B[0] - A[0], B[1] - A[1], B[2] - A[2]) || 0.001;
+            pl.t += (B[3] * pace * dt) / len;
+            if (pl.t >= 1) {
+              pl.t = 0;
+              pl.seg++;
+              if (B[4]) pl.wait = B[4];
+              if (pl.seg >= pl.pts.length - 1) pl.dead = true;
+            }
+          }
+          let live = 0;
+          for (let r = 0; r < planes.length; r++) if (!planes[r].dead) planes[live++] = planes[r];
+          planes.length = live;
+          const Am = planeBody.instanceMatrix.array,
+            Bm = planeTop.instanceMatrix.array,
+            cA = planeBody.instanceColor.array,
+            cB = planeTop.instanceColor.array,
+            wA = planeGeo.attributes.aWin.array;
+          let kb = 0,
+            kt = 0;
+          for (const pl of planes) {
+            if (kb >= MAXPB || kt > MAXPT - 8) break;
+            const A = pl.pts[pl.seg],
+              B = pl.pts[pl.seg + 1],
+              u = A[0] + (B[0] - A[0]) * pl.t,
+              v = A[1] + (B[1] - A[1]) * pl.t,
+              alt = A[2] + (B[2] - A[2]) * pl.t,
+              [X, Z] = apWorld(pl.a, u, v),
+              [X2, Z2] = apWorld(pl.a, B[0], B[1]),
+              hx = X2 - X,
+              hz = Z2 - Z;
+            if (Math.hypot(hx, hz) > 0.02) pl.rot = Math.atan2(-hz, hx); // keep the last heading while standing
+            const rot = pl.rot,
+              ux = Math.cos(rot),
+              uz = -Math.sin(rot),
+              y = 0.02 + alt,
+              liv = LIVERY[pl.col];
+            const part = (top, a, c, L, Wd, y0, y1, col, win) => {
+              const px = X + ux * a - uz * c,
+                pz = Z + uz * a + ux * c;
+              if (top) {
+                setM(Bm, kt * 16, px, y + y0, pz, L, y1 - y0, Wd, rot);
+                cB[kt * 3] = col.r;
+                cB[kt * 3 + 1] = col.g;
+                cB[kt * 3 + 2] = col.b;
+                kt++;
+              } else {
+                setM(Am, kb * 16, px, y + y0, pz, L, y1 - y0, Wd, rot);
+                cA[kb * 3] = col.r;
+                cA[kb * 3 + 1] = col.g;
+                cA[kb * 3 + 2] = col.b;
+                wA.set(win, kb * 4);
+                kb++;
+              }
+            };
+            part(false, 0, 0, 1.3, 0.16, 0.06, 0.22, K.white, [2, 0.16, 1, pl.seed]); // fuselage with a window strip
+            part(true, 0.72, 0, 0.16, 0.12, 0.08, 0.2, K.white); // nose
+            part(true, 0, 0, 1.31, 0.165, 0.09, 0.11, liv); // cheat line
+            part(true, 0.05, 0, 0.32, 1.3, 0.12, 0.145, K.hangar); // wings
+            part(true, 0.12, 0.3, 0.2, 0.08, 0.06, 0.12, K.dark); // engines
+            part(true, 0.12, -0.3, 0.2, 0.08, 0.06, 0.12, K.dark);
+            part(true, -0.55, 0, 0.2, 0.02, 0.22, 0.45, liv); // tail fin
+            part(true, -0.58, 0, 0.14, 0.44, 0.2, 0.22, K.hangar); // tailplane
+          }
+          planeBody.count = kb;
+          planeTop.count = kt;
+          planeBody.instanceMatrix.needsUpdate = planeTop.instanceMatrix.needsUpdate = true;
+          planeBody.instanceColor.needsUpdate = planeTop.instanceColor.needsUpdate = true;
+          planeGeo.attributes.aWin.needsUpdate = true;
+        }
+
         function setTod(t) {
           st.tod = t;
           const p = TOD[t];
@@ -6386,6 +6735,10 @@
             if (x >= 0 && y >= 0 && x < W && y < H) buyPlot(plotOf(y * W + x));
             return;
           }
+          if (st.tool === "airport") {
+            if (x >= 0 && y >= 0 && x < W && y < H) placeAirport(x, y);
+            return;
+          }
           mode = "paint";
           last = [x, y];
           place(x, y);
@@ -6494,6 +6847,11 @@
             B: "buy",
           };
           if (map[e.key]) setTool(map[e.key]);
+          if ((e.key === "t" || e.key === "T") && st.tool === "airport") {
+            st.apRot = (st.apRot + 1) % 4; // turn the airport a quarter
+            redraw = true;
+            if (hover >= 0) describe(hover);
+          }
           if (e.key === " ") {
             e.preventDefault();
             setSpeed(st.speed ? 0 : 1);
@@ -6623,7 +6981,10 @@
             if (t === T.PSTN && railConn[i]) parts.push(`শহরের মোট যাত্রী মাসে ${fmt(S.riders)}`);
             if (t === T.FSTN && railConn[i]) parts.push(`মালভাড়া মাসে ${taka(S.freight)}`);
           } else if (t === T.PORT) parts.push(`জাহাজে মাল রপ্তানি · মোট মালভাড়া মাসে ${taka(S.freight)}`);
-          else if (t === T.FERRY) parts.push(`লঞ্চে যাত্রী ওঠে · শহরের মোট যাত্রী মাসে ${fmt(S.riders)}`);
+          else if (t === T.AIRPORT) {
+            const a = airportAt(i);
+            parts.push(a && a.on ? `চালু · পর্যটন আর ব্যবসা থেকে মাসে ${taka(S.flyers)} · আশেপাশে শব্দদূষণ` : `বন্ধ: ${S.airWhy}`);
+          } else if (t === T.FERRY) parts.push(`লঞ্চে যাত্রী ওঠে · শহরের মোট যাত্রী মাসে ${fmt(S.riders)}`);
           else if (pCov[i]) parts.push("কাছে স্টেশন বা লঞ্চঘাট আছে");
           parts.push(
             `দূষণ ${bn(Math.round(poll[i] * 100))}%`,
@@ -6637,6 +6998,10 @@
             owned[plotOf(i)]
           )
             parts.push("এটা শুধু নদীর পাড়ে বসে");
+          else if (st.tool === "airport") {
+            const why = airportCheck(apFootprint(i % W, (i / W) | 0, st.apRot));
+            parts.push(why || `এখানে বিমানবন্দর বসানো যাবে · খরচ ${taka(COST.airport)}`, "T চেপে ঘোরাও");
+          }
           else if (
             (st.tool === "pstation" || st.tool === "fstation") &&
             owned[plotOf(i)]
@@ -6657,6 +7022,17 @@
           }
           const x = hover % W,
             y = (hover / W) | 0;
+          if (st.tool === "airport") {
+            const a = apFootprint(x, y, st.apRot),
+              w = a.r % 2 === 0 ? AP_L : AP_W,
+              h = a.r % 2 === 0 ? AP_W : AP_L;
+            brush.visible = true;
+            brush.scale.set(w, 1, h);
+            brush.position.set(a.x + w / 2, 0.09, a.y + h / 2);
+            brush.material.color.set(airportCheck(a) ? 0xc2410c : 0x2c6a58);
+            brush.material.opacity = 0.3;
+            return;
+          }
           if (st.tool === "buy") {
             const p = plotOf(hover);
             if (p !== hoverPlot) {
@@ -6750,6 +7126,7 @@
             updateCars(dt);
             updateTrains(dt);
             updateShips(dt);
+            updatePlanes(dt);
             updateSmoke();
             redraw = true;
           }
